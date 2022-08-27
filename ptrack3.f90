@@ -1531,7 +1531,7 @@
       pathl=sqrt((xin-xt)**2+(yin-yt)**2)
       if(pathl==0.or.trm==0) then
         write(11,*)'Target reached'
-!        stop                      !#jd
+!        stop                      !# jd
       endif
 
       lit=0 !flag
