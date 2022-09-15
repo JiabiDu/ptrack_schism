@@ -120,7 +120,7 @@
 
       character(len=30) :: file63
       real(kind=sng_kind) :: floatout,floatout2
-      real*8, allocatable :: xpar(:),ypar(:),zpar(:),st_p(:),upar(:),vpar(:),wpar(:)
+      real*8, allocatable :: xpar(:),ypar(:),zpar(:),st_p(:),upar(:),vpar(:),wpar(:),xpar2(:),ypar2(:)
       real*8, allocatable :: ztmp(:),ztmp2(:),dhfx(:),dhfy(:),dhfz(:),grdx(:),grdy(:), &
      &grdz(:),amas(:),wndx(:),wndy(:),timeout(:)
       integer, allocatable :: ielpar(:),levpar(:),iabnorm(:),ist(:),inbr(:)
@@ -193,7 +193,7 @@
       nrec=ihfskip/nspool !# of records (steps) per stack
 
       read(95,*) nparticle
-      allocate(zpar0(nparticle),xpar(nparticle),ypar(nparticle),zpar(nparticle), &
+      allocate(zpar0(nparticle),xpar(nparticle),ypar(nparticle),zpar(nparticle),xpar2(nparticle),ypar2(nparticle),&
      &st_p(nparticle),idp(nparticle),ielpar(nparticle),levpar(nparticle),upar(nparticle), &
      &vpar(nparticle),wpar(nparticle),iabnorm(nparticle),ist(nparticle),inbr(nparticle), &
      &dhfx(nparticle),dhfy(nparticle),dhfz(nparticle),grdx(nparticle),grdy(nparticle), &
@@ -1078,6 +1078,8 @@
           xout = xpar(i)
           yout = ypar(i)
         endif
+        xpar2(i)=xout
+        ypar2(i)=yout
 
         !drogue format for xmvis6s; no extra lines after this
         write(95,'(i12,2(1x,e22.14),1x,f12.3)')i,xout,yout,zpar(i)-eta_p
@@ -1100,9 +1102,9 @@
       STATUS=NF90_INQ_VARID(NCID, "lon", lonID)
       STATUS=NF90_INQ_VARID(NCID, "lat", latID)
       STATUS=NF90_INQ_VARID(NCID, "depth", depthID)
-      STATUS=NF90_PUT_VAR(NCID, modtimeID, DBLE(time)+reftime, start=(/ prcount /))
-      status=NF90_PUT_VAR(NCID, lonID, xpar,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
-      status=NF90_PUT_VAR(NCID, latID, ypar,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+      STATUS=NF90_PUT_VAR(NCID, modtimeID, DBLE(time), start=(/ prcount /))
+      status=NF90_PUT_VAR(NCID, lonID, xpar2,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+      status=NF90_PUT_VAR(NCID, latID, ypar2,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
       status=NF90_PUT_VAR(NCID, depthID, zpar,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
       STATUS=NF_CLOSE(NCID)
       write(*,*) 'write into',TRIM(ncFile)
