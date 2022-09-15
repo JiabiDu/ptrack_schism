@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+#sample call: ./run.multiple
+#sample call: ./run.multiple g3 s3
+import os 
+import sys
+#--------------------------------------------------------
+# INPUTS
+#--------------------------------------------------------
+ncdir='/scratch/user/emilyjane1215/galveston/t92/outnc/'   #the path for combined schism outputs
+runs=['g1','s1','c1','d1','b1','g2','s2','c2','d2','b2','g3','s3','c3','d3','b3']   #the model runs, there must be corresponding particle.bp file in bp/
+if len(sys.argv)>1: runs=sys.argv[1:]                      #allow you to define the runs with command line arguments
+
+#--------------------------------------------------------
+# creat run directories and submit jobs
+#--------------------------------------------------------
+for brun in runs:
+    run='run'+brun
+    print(f'\n=================== {run} =====================')
+    if os.path.exists(run):
+        x=input(f'{run} already exists; do you want to overwrite?\nType Y/y to confirm, other keys to skip this run: ')
+        if x not in ['Y','y']: continue
+    if not os.path.exists(f'bp/particle.bp_{brun}'): print(f'bp/particle.bp_{brun} not eists'); continue
+
+    #following are a bunch of linux command to set-up a run and then submit the job
+    cmd=f'''rm -rf {run}; mkdir {run}; cd {run}; ln -sf ../bp/particle.bp_{brun} particle.bp; 
+         ln -sf {ncdir}/*.nc .; cp -P ../base/ptrack3.WW .; ln -sf ../base/hgrid.* .; ln -sf ../base/vgrid.in .;
+         cp ../base/run_ptrack .; sed -i 's/job-name=ptrack/job-name=ptrack-{run}/g' run_ptrack; qsub run_ptrack'''
+    print(cmd)
+    
+    #run the command on your front node
+    os.system(cmd)
