@@ -131,7 +131,7 @@
       integer :: nodel2(3)
       integer :: varid1,varid2,dimids(3),istat,nvtx,iret
       CHARACTER(LEN=200) :: ncFile
-      integer:: NCID,numparID,timeID,modtimeID,lonID,latID,depthID
+      integer:: prcount,NCID,numparID,timeID,modtimeID,lonID,latID,depthID
 
       !Random seed used only for oil spill model
       iseed=5
@@ -141,6 +141,7 @@
       !Evaporation const.
       T_half=86400 ! half-life [sec]
       remain_ratio=0.6  ! remain ratio after a long time
+      prcount=0
 
       !Cyclical index
       do k=3,4 !elem. type
@@ -158,40 +159,6 @@
 
       ifort12=0 !init
       open(11,file='fort.11',status='replace')
-!... test to create netcdf
-      ncFile='out.nc'
-                !   NF90_CREATE           ! create netCDF dataset: enter
-                !   define mode
-                !        ...
-                !      NF90_DEF_DIM       ! define dimensions: from name
-                !      and length
-                !        ...
-                !      NF90_DEF_VAR       ! define variables: from name,
-                !      type, dims
-                !        ...
-                !      NF90_PUT_ATT       ! assign attribute values
-                !        ...
-                !   NF90_ENDDEF           ! end definitions: leave
-                !   define mode
-                !        ...
-                !      NF90_PUT_VAR       ! provide values for variable
-                !        ...
-                !   NF90_CLOSE            ! close: save new netCDF
-                !   dataset      
- 
-      status=NF90_CREATE(TRIM(ncFile), NF90_NETCDF4, NCID)
-      !define dimensions
-      status=NF90_DEF_DIM(NCID,'numpar',numpar,numparID)
-      status=NF90_DEF_DIM(NCID,'time',NF90_UNLIMITED,timeID)
-      !define var
-      status=NF90_DEF_VAR(NCID,'model_time',NF_DOUBLE,(/timeID/),modtimeID)
-      status=NF90_DEF_VAR(NCID,'lon',NF_FLOAT,(/numparID,timeID/), lonID)
-      status=NF90_DEF_VAR(NCID,'lat',NF_FLOAT,(/numparID,timeID/), latID)
-      status=NF90_DEF_VAR(NCID,'depth',NF_FLOAT,(/numparID,timeID/),depthID)
-      status=NF90_ENDDEF(NCID)
-      status=NF90_CLOSE(NCID)
-
-      stop
 
 !...  Read in particles
       open(95,file='particle.bp',status='old')
@@ -232,6 +199,25 @@
      &dhfx(nparticle),dhfy(nparticle),dhfz(nparticle),grdx(nparticle),grdy(nparticle), &
      &grdz(nparticle),amas(nparticle),wndx(nparticle),wndy(nparticle),stat=istat)
       if(istat/=0) stop 'Failed to alloc (1)'
+
+!... test to create netcdf  !jdu
+      ncFile='out.nc'
+      status=NF90_CREATE(TRIM(ncFile), NF90_NETCDF4, NCID)
+      !define dimensions
+      status=NF90_DEF_DIM(NCID,'numpar',nparticle,numparID)
+      status=NF90_DEF_DIM(NCID,'time',NF90_UNLIMITED,timeID)
+      !define var
+      status=NF90_DEF_VAR(NCID,'model_time',NF90_DOUBLE,(/timeID/),modtimeID)
+      status=NF90_DEF_VAR(NCID,'lon',NF90_FLOAT,(/numparID,timeID/),lonID)
+      status=NF90_DEF_VAR(NCID,'lat',NF90_FLOAT,(/numparID,timeID/),latID)
+      status=NF90_DEF_VAR(NCID,'depth',NF90_FLOAT,(/numparID,timeID/),depthID)
+      status=NF90_PUT_ATT(NCID,depthID,"long_name","depth")
+      status=NF90_PUT_ATT(NCID,latID,"long_name","latitude")
+      status=NF90_PUT_ATT(NCID,lonID,"long_name","longitude")
+      status=NF90_PUT_ATT(NCID,modtimeID,"long_name","Model time")
+      status=NF90_ENDDEF(NCID)
+      status=NF90_CLOSE(NCID)
+      write(*,*) 'succesfully create out.nc'
 
       levpar=-99 !vertical level
       iabnorm=0 !abnormal tracking exit flag
@@ -1107,6 +1093,19 @@
 !!        write(95,'(2e14.4)')time,ztmp2(nvrt)
 !!        write(*,'(2e14.4)')time,zpar(i)-eta3(ielpar(i))
       enddo !i=1,nparticle
+!...  write into netcdf jdu      
+      prcount = prcount + 1
+      status=NF90_OPEN(TRIM(ncFile), NF90_WRITE, NCID)
+      STATUS=NF90_INQ_VARID(NCID, "model_time", modtimeID)
+      STATUS=NF90_INQ_VARID(NCID, "lon", lonID)
+      STATUS=NF90_INQ_VARID(NCID, "lat", latID)
+      STATUS=NF90_INQ_VARID(NCID, "depth", depthID)
+      STATUS=NF90_PUT_VAR(NCID, modtimeID, DBLE(time)+reftime, start=(/ prcount /))
+      status=NF90_PUT_VAR(NCID, lonID, xpar,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+      status=NF90_PUT_VAR(NCID, latID, ypar,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+      status=NF90_PUT_VAR(NCID, depthID, zpar,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+      STATUS=NF_CLOSE(NCID)
+      write(*,*) 'write into',TRIM(ncFile)
 
 !...  Store info for next step
       uu1=uu2; vv1=vv2; ww1=ww2; eta1=eta2
