@@ -130,6 +130,8 @@
       real, allocatable :: zlcl(:),real_ar(:,:)
       integer :: nodel2(3)
       integer :: varid1,varid2,dimids(3),istat,nvtx,iret
+      CHARACTER(LEN=200) :: ncFile
+      integer:: NCID,numparID,timeID,modtimeID,lonID,latID,depthID
 
       !Random seed used only for oil spill model
       iseed=5
@@ -156,7 +158,41 @@
 
       ifort12=0 !init
       open(11,file='fort.11',status='replace')
+!... test to create netcdf
+      ncFile='out.nc'
+                !   NF90_CREATE           ! create netCDF dataset: enter
+                !   define mode
+                !        ...
+                !      NF90_DEF_DIM       ! define dimensions: from name
+                !      and length
+                !        ...
+                !      NF90_DEF_VAR       ! define variables: from name,
+                !      type, dims
+                !        ...
+                !      NF90_PUT_ATT       ! assign attribute values
+                !        ...
+                !   NF90_ENDDEF           ! end definitions: leave
+                !   define mode
+                !        ...
+                !      NF90_PUT_VAR       ! provide values for variable
+                !        ...
+                !   NF90_CLOSE            ! close: save new netCDF
+                !   dataset      
  
+      status=NF90_CREATE(TRIM(ncFile), NF90_NETCDF4, NCID)
+      !define dimensions
+      status=NF90_DEF_DIM(NCID,'numpar',numpar,numparID)
+      status=NF90_DEF_DIM(NCID,'time',NF90_UNLIMITED,timeID)
+      !define var
+      status=NF90_DEF_VAR(NCID,'model_time',NF_DOUBLE,(/timeID/),modtimeID)
+      status=NF90_DEF_VAR(NCID,'lon',NF_FLOAT,(/numparID,timeID/), lonID)
+      status=NF90_DEF_VAR(NCID,'lat',NF_FLOAT,(/numparID,timeID/), latID)
+      status=NF90_DEF_VAR(NCID,'depth',NF_FLOAT,(/numparID,timeID/),depthID)
+      status=NF90_ENDDEF(NCID)
+      status=NF90_CLOSE(NCID)
+
+      stop
+
 !...  Read in particles
       open(95,file='particle.bp',status='old')
       read(95,*)
