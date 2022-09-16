@@ -132,8 +132,8 @@
       integer :: varid1,varid2,dimids(3),istat,nvtx,iret
       character(len=200) :: ncFile,ncDir
       integer::prcount,NCID2,numparID,timeID,modtimeID,lonID,latID,depthID
-      
-      !Random seed used only for oil spill model
+       
+      !Random seed used only for oil spill model 
       iseed=5
       !Ekman effects
       rotate_angle=3.0*(pi/180.0)   !angle between wind and current directions
