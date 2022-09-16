@@ -118,7 +118,7 @@
 
       implicit real(kind=dbl_kind)(a-h,o-z),integer(i-n)
 
-      character(len=30) :: file63
+      character(len=200) :: file63
       real(kind=sng_kind) :: floatout,floatout2
       real*8, allocatable :: xpar(:),ypar(:),zpar(:),st_p(:),upar(:),vpar(:),wpar(:),xpar2(:),ypar2(:)
       real*8, allocatable :: ztmp(:),ztmp2(:),dhfx(:),dhfy(:),dhfz(:),grdx(:),grdy(:), &
@@ -162,7 +162,8 @@
  
 !...  Read in particles
       open(95,file='particle.bp',status='old')
-      read(95,*)
+      read(95,'(A)') ncDir
+      write(*,*) 'nc directory:',trim(ncDir)
       read(95,*) nscreen
 !     Model #: 0-passive; 1:oil spill
       read(95,*) mod_part
@@ -319,7 +320,8 @@
 
       write(ifile_char,'(i12)') ifile
       ifile_char=adjustl(ifile_char); len_char=len_trim(ifile_char)
-      file63='schout_'//ifile_char(1:len_char)//'.nc'
+      file63=trim(ncDir)//'schout_'//ifile_char(1:len_char)//'.nc'
+      write(*,*) trim(file63)
       iret=nf90_open(trim(adjustl(file63)),OR(NF90_NETCDF4,NF90_NOWRITE),ncid)
       iret=nf90_inq_varid(ncid,'elev',ielev_id)
       if(iret/=nf90_NoErr) stop 'elev not found'
@@ -679,7 +681,8 @@
         ifile=ifile+ibf !stack #
         write(ifile_char,'(i12)') ifile
         ifile_char=adjustl(ifile_char); len_char=len_trim(ifile_char)
-        file63='schout_'//ifile_char(1:len_char)//'.nc'
+        file63=trim(ncDir)//'schout_'//ifile_char(1:len_char)//'.nc'
+        write(*,*) trim(file63)
         iret=nf90_open(trim(adjustl(file63)),OR(NF90_NETCDF4,NF90_NOWRITE),ncid)
         !time is double
         iret=nf90_inq_varid(ncid,'time',itime_id)
