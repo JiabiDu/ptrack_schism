@@ -120,7 +120,7 @@
 
       character(len=30) :: file63
       real(kind=sng_kind) :: floatout,floatout2
-      real*8, allocatable :: xpar(:),ypar(:),zpar(:),st_p(:),upar(:),vpar(:),wpar(:)
+      real*8, allocatable :: xpar(:),ypar(:),zpar(:),st_p(:),upar(:),vpar(:),wpar(:),xpar2(:),ypar2(:)
       real*8, allocatable :: ztmp(:),ztmp2(:),dhfx(:),dhfy(:),dhfz(:),grdx(:),grdy(:), &
      &grdz(:),amas(:),wndx(:),wndy(:),timeout(:)
       integer, allocatable :: ielpar(:),levpar(:),iabnorm(:),ist(:),inbr(:)
@@ -130,6 +130,9 @@
       real, allocatable :: zlcl(:),real_ar(:,:)
       integer :: nodel2(3)
       integer :: varid1,varid2,dimids(3),istat,nvtx,iret
+      CHARACTER(LEN=200) :: ncFile
+      integer::prcount,NCID2,numparID,timeID,modtimeID,lonID,latID,depthID
+      
 
       !Random seed used only for oil spill model
       iseed=5
@@ -139,6 +142,7 @@
       !Evaporation const.
       T_half=86400 ! half-life [sec]
       remain_ratio=0.6  ! remain ratio after a long time
+      prcount=1
 
       !Cyclical index
       do k=3,4 !elem. type
@@ -190,12 +194,31 @@
       nrec=ihfskip/nspool !# of records (steps) per stack
 
       read(95,*) nparticle
-      allocate(zpar0(nparticle),xpar(nparticle),ypar(nparticle),zpar(nparticle), &
+      allocate(zpar0(nparticle),xpar(nparticle),ypar(nparticle),zpar(nparticle),xpar2(nparticle),ypar2(nparticle),&
      &st_p(nparticle),idp(nparticle),ielpar(nparticle),levpar(nparticle),upar(nparticle), &
      &vpar(nparticle),wpar(nparticle),iabnorm(nparticle),ist(nparticle),inbr(nparticle), &
      &dhfx(nparticle),dhfy(nparticle),dhfz(nparticle),grdx(nparticle),grdy(nparticle), &
      &grdz(nparticle),amas(nparticle),wndx(nparticle),wndy(nparticle),stat=istat)
       if(istat/=0) stop 'Failed to alloc (1)'
+
+!... test to create netcdf  !jdu
+      ncFile='out.nc'
+      status=NF90_CREATE(TRIM(ncFile), NF90_NETCDF4, NCID2)
+      !define dimensions
+      status=NF90_DEF_DIM(NCID2,'numpar',nparticle,numparID)
+      status=NF90_DEF_DIM(NCID2,'time',NF90_UNLIMITED,timeID)
+      !define var
+      status=NF90_DEF_VAR(NCID2,'model_time',NF90_DOUBLE,(/timeID/),modtimeID)
+      status=NF90_DEF_VAR(NCID2,'lon',NF90_FLOAT,(/numparID,timeID/),lonID)
+      status=NF90_DEF_VAR(NCID2,'lat',NF90_FLOAT,(/numparID,timeID/),latID)
+      status=NF90_DEF_VAR(NCID2,'depth',NF90_FLOAT,(/numparID,timeID/),depthID)
+      status=NF90_PUT_ATT(NCID2,depthID,"long_name","depth")
+      status=NF90_PUT_ATT(NCID2,latID,"long_name","latitude")
+      status=NF90_PUT_ATT(NCID2,lonID,"long_name","longitude")
+      status=NF90_PUT_ATT(NCID2,modtimeID,"long_name","Model time")
+      status=NF90_ENDDEF(NCID2)
+      status=NF90_CLOSE(NCID2)
+      write(*,*) 'succesfully create out.nc'
 
       levpar=-99 !vertical level
       iabnorm=0 !abnormal tracking exit flag
@@ -1056,7 +1079,8 @@
           xout = xpar(i)
           yout = ypar(i)
         endif
-
+        xpar2(i)=xout
+        ypar2(i)=yout
         !drogue format for xmvis6s; no extra lines after this
         write(95,'(i12,2(1x,e22.14),1x,f12.3)')i,xout,yout,zpar(i)-eta_p
 !       write(95,*) i,ist(i),amas(i),xout,yout,real(zpar(i)-eta_p)
@@ -1071,6 +1095,19 @@
 !!        write(95,'(2e14.4)')time,ztmp2(nvrt)
 !!        write(*,'(2e14.4)')time,zpar(i)-eta3(ielpar(i))
       enddo !i=1,nparticle
+!...  write into netcdf jdu
+      prcount = prcount+1
+      status=NF90_OPEN(TRIM(ncFile), NF90_WRITE, NCID2)
+      STATUS=NF90_INQ_VARID(NCID2, "model_time", modtimeID)
+      STATUS=NF90_INQ_VARID(NCID2, "lon", lonID)
+      STATUS=NF90_INQ_VARID(NCID2, "lat", latID)
+      STATUS=NF90_INQ_VARID(NCID2, "depth", depthID)
+      STATUS=NF90_PUT_VAR(NCID2, modtimeID, DBLE(time), start=(/ prcount /))
+      status=NF90_PUT_VAR(NCID2, lonID, xpar2,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+      status=NF90_PUT_VAR(NCID2, latID, ypar2,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+      status=NF90_PUT_VAR(NCID2, depthID, zpar,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+      STATUS=NF_CLOSE(NCID2)
+      write(*,*) 'write into',TRIM(ncFile)
 
 !...  Store info for next step
       uu1=uu2; vv1=vv2; ww1=ww2; eta1=eta2
