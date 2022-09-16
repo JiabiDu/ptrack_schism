@@ -133,7 +133,6 @@
       character(len=200) :: ncFile
       integer::prcount,NCID2,numparID,timeID,modtimeID,lonID,latID,depthID
       
-
       !Random seed used only for oil spill model
       iseed=5
       !Ekman effects
