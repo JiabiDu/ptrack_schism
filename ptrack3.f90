@@ -1083,11 +1083,11 @@
         !drogue format for xmvis6s; no extra lines after this
         !write(95,'(i12,2(1x,e22.14),1x,f12.3)')i,xout,yout,zpar(i)-eta_p
         !write(97,*)i,real(xout),real(yout),real(zpar(i)),ielpar(i),levpar(i), &
-     &real(eta_p),real(dp_p),iabnorm(i),real(upar(i)),real(vpar(i)),real(wpar(i))
+        ! &real(eta_p),real(dp_p),iabnorm(i),real(upar(i)),real(vpar(i)),real(wpar(i))
         if(levpar(i)>0) then
           ie4=ielpar(i)
           !write(97,*)'wet:',i34(ie4),real(arco(1:3)),real(uu2(elnode(1:i34(ie4),ie4),levpar(i))), &
-     &real(vv2(elnode(1:i34(ie4),ie4),levpar(i))),real(eta3(elnode(1:i34(ie4),ie4)))
+          !&real(vv2(elnode(1:i34(ie4),ie4),levpar(i))),real(eta3(elnode(1:i34(ie4),ie4)))
         endif !levpar
 
 !!        write(95,'(2e14.4)')time,ztmp2(nvrt)
