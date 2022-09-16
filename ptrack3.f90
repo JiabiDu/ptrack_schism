@@ -132,6 +132,7 @@
       integer :: varid1,varid2,dimids(3),istat,nvtx,iret
       character(len=200) :: ncFile,ncDir
       integer::prcount,NCID2,numparID,timeID,modtimeID,lonID,latID,depthID
+      integer::fu,rc
        
       !Random seed used only for oil spill model 
       iseed=5
@@ -159,40 +160,36 @@
 
       ifort12=0 !init
       open(11,file='fort.11',status='replace')
- 
-!...  Read in particles
-      open(95,file='particle.bp',status='old')
-      read(95,'(A)') ncDir
+!... read in parameters from ptrack.nml,jdu
+      namelist /CORE/ settling_velocity,ncDir, nscreen, mod_part,ibf,&
+                      &istiff,ics,slam0,sfea0,h0,rnday,dtm,nspool,ihfskip,&
+                      &ndeltp
+      open (action='read', file='ptrack.nml', iostat=rc, newunit=fu)
+      read (nml=CORE, iostat=rc, unit=fu)
       write(*,*) 'nc directory:',trim(ncDir)
-      read(95,*) nscreen
-!     Model #: 0-passive; 1:oil spill
-      read(95,*) mod_part
+      write(*,*) 'settling velocity',settling_velocity
       if(mod_part<0.or.mod_part>1) stop 'Unknown model'
-      read(95,*) ibf
       if(iabs(ibf)/=1) then
         write(*,*)'Wrong ibf',ibf
         stop
       endif
       if(mod_part==1.and.ibf/=1) stop 'Oil spill must have ibf=1'
-
-      read(95,*) settling_velocity !Read in settling velocity in m/d
       settling_velocity=settling_velocity/86400
-
-      read(95,*) istiff !1: fixed distance from F.S.
       if(istiff/=0.and.istiff/=1) then
         write(*,*)'Wrong istiff',istiff
         stop
       endif
-      read(95,*) ics,slam0,sfea0
       slam0=slam0/180*pi
       sfea0=sfea0/180*pi
-      read(95,*) h0,rnday,dtm,nspool,ihfskip,ndeltp !# of sub-divisions
       if(mod(ihfskip,nspool)/=0) then
         write(*,*)'ihfskip must be a multiple of nspool'
         stop
       endif
       nrec=ihfskip/nspool !# of records (steps) per stack
 
+
+!...  Read in particles
+      open(95,file='particle.bp',status='old')
       read(95,*) nparticle
       allocate(zpar0(nparticle),xpar(nparticle),ypar(nparticle),zpar(nparticle),xpar2(nparticle),ypar2(nparticle),&
      &st_p(nparticle),idp(nparticle),ielpar(nparticle),levpar(nparticle),upar(nparticle), &
