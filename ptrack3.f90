@@ -638,14 +638,14 @@
         stop
       end do lp1 !i=1,nparticle
 
-      open(95,file='particle.pth',status='replace')
-      open(97,file='particle.pth.more',status='replace')
-      write(95,*)'Drogues'
-      if(ibf==1) then
-        write(95,*) ntime-iths+1
-      else
-        write(95,*) iths
-      endif
+      !open(95,file='particle.pth',status='replace')
+      !open(97,file='particle.pth.more',status='replace')
+      !write(95,*)'Drogues'
+      !if(ibf==1) then
+      !  write(95,*) ntime-iths+1
+      !else
+      !  write(95,*) iths
+      !endif
 
       if(nscreen.eq.1) write(*,*)'done initialization...'
 
@@ -815,8 +815,8 @@
       if(nscreen.eq.1) write(*,*)'begin ptrack...'
 
 !...  Particle tracking
-      write(95,*) time,nparticle
-      write(97,*) time,nparticle
+      !write(95,*) time,nparticle
+      !write(97,*) time,nparticle
       do i=1,nparticle
         eta_p=0; dp_p=0 !for output before moving
         if((ibf==1.and.time<=st_p(i)).or.(ibf==-1.and.time>st_p(i)-dt)) go to 449 !output directly
@@ -1081,13 +1081,12 @@
         xpar2(i)=xout
         ypar2(i)=yout
         !drogue format for xmvis6s; no extra lines after this
-        write(95,'(i12,2(1x,e22.14),1x,f12.3)')i,xout,yout,zpar(i)-eta_p
-!       write(95,*) i,ist(i),amas(i),xout,yout,real(zpar(i)-eta_p)
-        write(97,*)i,real(xout),real(yout),real(zpar(i)),ielpar(i),levpar(i), &
+        !write(95,'(i12,2(1x,e22.14),1x,f12.3)')i,xout,yout,zpar(i)-eta_p
+        !write(97,*)i,real(xout),real(yout),real(zpar(i)),ielpar(i),levpar(i), &
      &real(eta_p),real(dp_p),iabnorm(i),real(upar(i)),real(vpar(i)),real(wpar(i))
         if(levpar(i)>0) then
           ie4=ielpar(i)
-          write(97,*)'wet:',i34(ie4),real(arco(1:3)),real(uu2(elnode(1:i34(ie4),ie4),levpar(i))), &
+          !write(97,*)'wet:',i34(ie4),real(arco(1:3)),real(uu2(elnode(1:i34(ie4),ie4),levpar(i))), &
      &real(vv2(elnode(1:i34(ie4),ie4),levpar(i))),real(eta3(elnode(1:i34(ie4),ie4)))
         endif !levpar
 
