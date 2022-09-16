@@ -130,7 +130,7 @@
       real, allocatable :: zlcl(:),real_ar(:,:)
       integer :: nodel2(3)
       integer :: varid1,varid2,dimids(3),istat,nvtx,iret
-      character(len=200) :: ncFile
+      character(len=200) :: ncFile,ncDir
       integer::prcount,NCID2,numparID,timeID,modtimeID,lonID,latID,depthID
       
       !Random seed used only for oil spill model
