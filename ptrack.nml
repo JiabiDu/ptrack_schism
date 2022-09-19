@@ -1,0 +1,17 @@
+&CORE
+settling_velocity = 1 !settling velocity, m/day
+ncDir = '/scratch/user/emilyjane1215/galveston/t92/outnc/'  !nc output directory
+nscreen=1             !1 for screen output
+mod_part=0            !(0: passive; 1: oil spill)
+ibf=1                 !(1: forward; -1: backward)
+istiff=0              !(fix distance from f.s[1] or not[0])
+ics=2                 !1 to use hgrid.gr3, 2 to use hgrid.ll
+slam0=-94             !
+sfea0=29              !
+h0=0.5                !min depth
+rnday=365.00          !running time in days, not the duration after particle release
+dtm=120.              !hydro model time step, must be same as in param.nml in hydro model
+nspool=60             !hydro model output frequency, must be same as in param.nml in hydro model
+ihfskip=720           !time steps for each hydro model output stack, see param.nml in hydro model
+ndeltp=40             !model sub time step
+/
