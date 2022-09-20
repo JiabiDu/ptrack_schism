@@ -118,31 +118,24 @@
 
       implicit real(kind=dbl_kind)(a-h,o-z),integer(i-n)
 
-      character(len=200) :: file63
       real(kind=sng_kind) :: floatout,floatout2
-      real*8, allocatable :: xpar(:),ypar(:),zpar(:),st_p(:),upar(:),vpar(:),wpar(:),xpar2(:),ypar2(:)
-      real*8, allocatable :: ztmp(:),ztmp2(:),dhfx(:),dhfy(:),dhfz(:),grdx(:),grdy(:), &
-     &grdz(:),amas(:),wndx(:),wndy(:),timeout(:)
+      real*8, allocatable :: xpar(:),ypar(:),zpar(:),st_p(:),upar(:),vpar(:),wpar(:),xpar2(:),ypar2(:),&
+     &ztmp(:),ztmp2(:),dhfx(:),dhfy(:),dhfz(:),grdx(:),grdy(:),grdz(:),amas(:),wndx(:),wndy(:),timeout(:)
+      real, allocatable :: zlcl(:),real_ar(:,:)
       integer, allocatable :: ielpar(:),levpar(:),iabnorm(:),ist(:),inbr(:)
       character(len=25), allocatable :: idp(:)
       real*8 :: vxl(4,2),vyl(4,2),vzl(4,2),vxn(4),vyn(4),vzn(4),arco(3), &
      &dx(10),dy(10),dz(10),val(4,2),vbl(4,2),vcl(4,2),vdl(4,2),van(4),vcn(4),vdn(4),vwx(4),vwy(4)
-      real, allocatable :: zlcl(:),real_ar(:,:)
-      integer :: nodel2(3)
-      integer :: varid1,varid2,dimids(3),istat,nvtx,iret
-      character(len=200) :: ncFile,ncDir
-      integer::prcount,NCID2,numparID,timeID,modtimeID,lonID,latID,depthID
-      integer::fu,rc
-       
-      !Random seed used only for oil spill model 
-      iseed=5
-      !Ekman effects
-      rotate_angle=3.0*(pi/180.0)   !angle between wind and current directions
+      integer :: nodel2(3),varid1,varid2,dimids(3),istat,nvtx,iret,&
+     &prcount,NCID2,numparID,timeID,modtimeID,lonID,latID,depthID,fu,rc
+      character(len=200) :: file63,ncFile,ncDir
+
+      iseed=5 !Random seed used only for oil spill model 
+      rotate_angle=3.0*(pi/180.0)   !!Ekman effects, angle between wind and current directions
       drag_c=0.03 !reducing wind speed to get surface current
-      !Evaporation const.
       T_half=86400 ! half-life [sec]
       remain_ratio=0.6  ! remain ratio after a long time
-      prcount=1
+      prcount=1 !count of nc output record
 
       !Cyclical index
       do k=3,4 !elem. type
@@ -164,10 +157,14 @@
       namelist /CORE/ settling_velocity,ncDir, nscreen, mod_part,ibf,&
                       &istiff,ics,slam0,sfea0,h0,rnday,dtm,nspool,ihfskip,&
                       &ndeltp
+      namelist /OIL/ ihdf,hdc,horcon,ibuoy,iwind,pbeach
       open (action='read', file='ptrack.nml', iostat=rc, newunit=fu)
       read (nml=CORE, iostat=rc, unit=fu)
+      read (nml=OIL, iostat=rc, unit=fu)
+      
+!... check the parameters    
       write(*,*) 'nc directory:',trim(ncDir)
-      write(*,*) 'settling velocity',settling_velocity
+      write(*,*) 'settling velocity (m/day):',settling_velocity  
       if(mod_part<0.or.mod_part>1) stop 'Unknown model'
       if(iabs(ibf)/=1) then
         write(*,*)'Wrong ibf',ibf
@@ -187,7 +184,6 @@
       endif
       nrec=ihfskip/nspool !# of records (steps) per stack
 
-
 !...  Read in particles
       open(95,file='particle.bp',status='old')
       read(95,*) nparticle
@@ -197,26 +193,6 @@
      &dhfx(nparticle),dhfy(nparticle),dhfz(nparticle),grdx(nparticle),grdy(nparticle), &
      &grdz(nparticle),amas(nparticle),wndx(nparticle),wndy(nparticle),stat=istat)
       if(istat/=0) stop 'Failed to alloc (1)'
-
-!... test to create netcdf  !jdu
-      ncFile='out.nc'
-      status=NF90_CREATE(TRIM(ncFile), NF90_NETCDF4, NCID2)
-      !define dimensions
-      status=NF90_DEF_DIM(NCID2,'numpar',nparticle,numparID)
-      status=NF90_DEF_DIM(NCID2,'time',NF90_UNLIMITED,timeID)
-      !define var
-      status=NF90_DEF_VAR(NCID2,'model_time',NF90_DOUBLE,(/timeID/),modtimeID)
-      status=NF90_DEF_VAR(NCID2,'lon',NF90_FLOAT,(/numparID,timeID/),lonID)
-      status=NF90_DEF_VAR(NCID2,'lat',NF90_FLOAT,(/numparID,timeID/),latID)
-      status=NF90_DEF_VAR(NCID2,'depth',NF90_FLOAT,(/numparID,timeID/),depthID)
-      status=NF90_PUT_ATT(NCID2,depthID,"long_name","depth")
-      status=NF90_PUT_ATT(NCID2,latID,"long_name","latitude")
-      status=NF90_PUT_ATT(NCID2,lonID,"long_name","longitude")
-      status=NF90_PUT_ATT(NCID2,modtimeID,"long_name","Model time")
-      status=NF90_ENDDEF(NCID2)
-      status=NF90_CLOSE(NCID2)
-      write(*,*) 'succesfully create out.nc'
-
       levpar=-99 !vertical level
       iabnorm=0 !abnormal tracking exit flag
 
@@ -242,22 +218,27 @@
         endif
         if(ibf*st_p(i)<ibf*st_m) st_m=st_p(i)
       enddo !i
-
-!...  Additional parameters for oil spill
-! ... Description of parameters
-!     ihdf  : turn on Smagorinsky algorithm - off(0), on(1)
-!     ibuoy : turn buoyancy of particle  - off(0), on(1)
-!     iwind : turn wind effect - off(0), on(1)
-!     pbeach  : set percentage of stranding on shore
-! ........................................................
-      if(mod_part==1) then
-        read(95,*) !comment line
-        read(95,*) ihdf,hdc,horcon
-        read(95,*) ibuoy,iwind
-        read(95,*) pbeach
-      endif !mod_part=1
-
       close(95)
+
+!... create netcdf output file  !jdu TODO write the major parameters in the global attributes
+      ncFile='out.nc'
+      status=NF90_CREATE(TRIM(ncFile), NF90_NETCDF4, NCID2)
+      !define dimensions
+      status=NF90_DEF_DIM(NCID2,'numpar',nparticle,numparID)
+      status=NF90_DEF_DIM(NCID2,'time',NF90_UNLIMITED,timeID)
+      !define var
+      status=NF90_DEF_VAR(NCID2,'model_time',NF90_DOUBLE,(/timeID/),modtimeID)
+      status=NF90_DEF_VAR(NCID2,'lon',NF90_FLOAT,(/numparID,timeID/),lonID)
+      status=NF90_DEF_VAR(NCID2,'lat',NF90_FLOAT,(/numparID,timeID/),latID)
+      status=NF90_DEF_VAR(NCID2,'depth',NF90_FLOAT,(/numparID,timeID/),depthID)
+      !put attributes to each variable
+      status=NF90_PUT_ATT(NCID2,depthID,"long_name","depth")
+      status=NF90_PUT_ATT(NCID2,latID,"long_name","latitude")
+      status=NF90_PUT_ATT(NCID2,lonID,"long_name","longitude")
+      status=NF90_PUT_ATT(NCID2,modtimeID,"long_name","Model time")
+      status=NF90_ENDDEF(NCID2)
+      status=NF90_CLOSE(NCID2)
+      write(*,*) 'Created out.nc'
 
 !...  Init. ist etc; some of these are only used in certain models
 !     ist(1:nparticles): 0 - inactive b4 release
