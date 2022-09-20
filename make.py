@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
+''' This code is to compile the ptrack3.f90 and add tag to the compiled code '''
 import os 
-import sys
 #compile command
 cmd=f'''cd ~/ptrack_schism; ifort -mcmodel=medium -CB -assume byterecl -O2 -o ptrack3.WW ptrack3.f90 compute_zcor.f90 schism_geometry.f90 -I$NETCDF/include -I$NETCDF_FORTRAN/include -L$NETCDF_FORTRAN/lib -L$NETCDF/lib -lnetcdf -lnetcdff'''
 print(cmd); os.system(cmd)
