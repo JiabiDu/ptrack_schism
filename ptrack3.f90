@@ -261,9 +261,9 @@
           rho_w=1025.0d3       ! kg/m^3
           di=500.0d-6          ! m
           smu=1.05d-6          ! m^2/s
-! ... critical diameter, dc
+          !critical diameter, dc
           dc=9.52*smu**(2./3.)/(gr**(1./3.)*(1.-rho_o/rho_w)**(1./3.)) !m
-!... compute the rising velocity, m/s
+          !compute the rising velocity, m/s
           if(di>=dc) then
             rsl=sqrt(8./3.*gr*di*(1.-rho_o/rho_w))  ! large droplet
           else
@@ -311,16 +311,8 @@
         iret=nf90_inq_varid(ncid,'wind_speed',lwind)
         if(iret/=nf90_NoErr) stop 'wind not found'
         iret=nf90_inq_varid(ncid,'diffusivity',ltdff)
-        if(iret/=nf90_NoErr) stop 'elev not found'
+        if(iret/=nf90_NoErr) stop 'diffusivity not found'
       endif !mod_part
-
-!      open(60,file=trim(ifile_char)//'_elev.61',access='direct',recl=nbyte)
-!      open(61,file=trim(ifile_char)//'_hvel.64',access='direct',recl=nbyte)
-!      open(62,file=trim(ifile_char)//'_vert.63',access='direct',recl=nbyte)
-!      if(mod_part==1) then
-!        open(63,file=trim(ifile_char)//'_wind.62',access='direct',recl=nbyte)
-!        open(64,file=trim(ifile_char)//'_tdff.63',access='direct',recl=nbyte)
-!      endif !mod_part
 
       iret=nf90_inq_dimid(ncid,'nSCHISM_vgrid_layers',i)
       iret=nf90_Inquire_Dimension(ncid,i,len=nvrt)
@@ -356,7 +348,7 @@
       iret=nf90_get_var(ncid,varid1,kbp00)
 
       !Leave it open as this is the 1st stack to read from
-!      iret=nf90_close(ncid)
+      !iret=nf90_close(ncid)
 
       !print*, 'nc dim:',nvrt,np,ne,nrec,start_time
 
@@ -365,34 +357,6 @@
       do i=1,ne
         if(elnode(4,i)<0) i34(i)=3
       enddo !i
-
-
-!      irec00=5*48/nbyte+5 !+7+nvrt 
-!      read(60,rec=irec00+1) nvrt
-!      irec00=irec00+7+nvrt
-!      read(60,rec=irec00+1) np
-!      read(60,rec=irec00+2) ne
-!      print*, 'nvrt,np,ne=',nvrt,np,ne
-
-!      irec00=irec00+2
-!      do m=1,np
-!        !read x,y from hgrid for mroe precision
-!        read(60,rec=irec00+4)kbp00(m)
-!        irec00=irec00+4
-!      enddo !m=1,np
-!      do m=1,ne
-!        read(60,rec=irec00+1)i34(m)
-!        irec00=irec00+1
-!        do mm=1,i34(m)
-!          read(60,rec=irec00+1)elnode(mm,m)
-!          irec00=irec00+1
-!        enddo !mm
-!      enddo !m
-
-!      irec00=irec00+4*ne
-
-!     Initialize kbp for levels()
-!     if(ivcor==2) kbp=kbp00
 
 !...  Read in h- and v-grid and compute geometry
 !...  Since binary may split quads, do not read in conn table
@@ -417,7 +381,7 @@
       enddo !i=1,np
 
       do i=1,ne2
-        !Use conn table from binary
+        !Use conn table from nc
         read(14,*) !j,i34(i),elnode(1:i34(i),i)
       enddo !i
 
