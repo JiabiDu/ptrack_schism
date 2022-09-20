@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+import os 
+import sys
+#compile command
+cmd=f'''cd ~/ptrack_schism; ifort -mcmodel=medium -CB -assume byterecl -O2 -o ptrack3.WW ptrack3.f90 compute_zcor.f90 schism_geometry.f90 -I$NETCDF/include -I$NETCDF_FORTRAN/include -L$NETCDF_FORTRAN/lib -L$NETCDF/lib -lnetcdf -lnetcdff'''
+print(cmd); os.system(cmd)
+
+#add git tag
+tag=os.popen('git log').read().split('\n')[0].split()[1][:8]
+cmd='mv ~/ptrack_schism/ptrack3.WW ./ptrack3.WW.{}'.format(tag)
+print(cmd); os.system(cmd)
+
+    
