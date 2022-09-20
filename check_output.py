@@ -10,7 +10,7 @@ gd=read_schism_hgrid('hgrid.ll')
 gd.plot_bnd()
 
 #plot the first 10 particles
-for i arange(10):
-    plot(plon[i,:],plat[i,:])
+for i in arange(10):
+    plot(plon[:,i],plat[:,i])
 show()
 
