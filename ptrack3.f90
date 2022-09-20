@@ -153,12 +153,12 @@
 
       ifort12=0 !init
       open(11,file='fort.11',status='replace')
-!... read in parameters from ptrack.nml,jdu
+!... read in parameters from param.in,jdu
       namelist /CORE/ settling_velocity,ncDir, nscreen, mod_part,ibf,&
                       &istiff,ics,slam0,sfea0,h0,rnday,dtm,nspool,ihfskip,&
                       &ndeltp
       namelist /OIL/ ihdf,hdc,horcon,ibuoy,iwind,pbeach
-      open (action='read', file='ptrack.nml', iostat=rc, newunit=fu)
+      open (action='read', file='param.in', iostat=rc, newunit=fu)
       read (nml=CORE, iostat=rc, unit=fu)
       read (nml=OIL, iostat=rc, unit=fu)
       
