@@ -408,7 +408,7 @@
         endif
 
         if(area(i)<=0) then
-          write(11,*)'Negative area at',i
+          write(11,*)'Negative element area at',i
           stop
         endif
       enddo !i=1,ne

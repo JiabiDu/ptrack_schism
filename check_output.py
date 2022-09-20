@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from pylib import *
+from pylib import read_schism_hgrid, ReadNC, plot, show, arange
 #read data
 C=ReadNC('out.nc')
 plon=C.lon.val
