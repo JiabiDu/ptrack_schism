@@ -18,5 +18,6 @@ module load CMake/3.12.1
 export NETCDF=/sw/eb/sw/netCDF/4.6.1-intel-2018b
 export NETCDF_FORTRAN=/sw/eb/sw/netCDF-Fortran/4.4.4-intel-2018b
 
+rm Example1Out.*
 ./ptrack3.WW > mirror.out
 
