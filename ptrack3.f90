@@ -222,23 +222,7 @@
 
 !... create netcdf output file  !jdu TODO write the major parameters in the global attributes
       ncFile='out.nc'
-      status=NF90_CREATE(TRIM(ncFile), NF90_NETCDF4, NCID2)
-      !define dimensions
-      status=NF90_DEF_DIM(NCID2,'numpar',nparticle,numparID)
-      status=NF90_DEF_DIM(NCID2,'time',NF90_UNLIMITED,timeID)
-      !define var
-      status=NF90_DEF_VAR(NCID2,'model_time',NF90_DOUBLE,(/timeID/),modtimeID)
-      status=NF90_DEF_VAR(NCID2,'lon',NF90_FLOAT,(/numparID,timeID/),lonID)
-      status=NF90_DEF_VAR(NCID2,'lat',NF90_FLOAT,(/numparID,timeID/),latID)
-      status=NF90_DEF_VAR(NCID2,'depth',NF90_FLOAT,(/numparID,timeID/),depthID)
-      !put attributes to each variable
-      status=NF90_PUT_ATT(NCID2,depthID,"long_name","depth")
-      status=NF90_PUT_ATT(NCID2,latID,"long_name","latitude")
-      status=NF90_PUT_ATT(NCID2,lonID,"long_name","longitude")
-      status=NF90_PUT_ATT(NCID2,modtimeID,"long_name","Model time")
-      status=NF90_ENDDEF(NCID2)
-      status=NF90_CLOSE(NCID2)
-      write(*,*) 'Created out.nc'
+      call create_nc_file(ncFile)
 
 !...  Init. ist etc; some of these are only used in certain models
 !     ist(1:nparticles): 0 - inactive b4 release
@@ -1827,3 +1811,27 @@
       end subroutine pt_in_poly3
 
 !======================================================================
+      subroutine create_nc_file(ncFile)
+      use global
+      integer:: NCID2,numparID,timeID,modtimeID,lonID,latID,depthID
+      status=NF90_CREATE(TRIM(ncFile), NF90_NETCDF4, NCID2)
+      !define dimensions
+      status=NF90_DEF_DIM(NCID2,'numpar',nparticle,numparID)
+      status=NF90_DEF_DIM(NCID2,'time',NF90_UNLIMITED,timeID)
+      !define var
+      status=NF90_DEF_VAR(NCID2,'model_time',NF90_DOUBLE,(/timeID/),modtimeID)
+      status=NF90_DEF_VAR(NCID2,'lon',NF90_FLOAT,(/numparID,timeID/),lonID)
+      status=NF90_DEF_VAR(NCID2,'lat',NF90_FLOAT,(/numparID,timeID/),latID)
+      status=NF90_DEF_VAR(NCID2,'depth',NF90_FLOAT,(/numparID,timeID/),depthID)
+      !put attributes to each variable
+      status=NF90_PUT_ATT(NCID2,depthID,"long_name","depth")
+      status=NF90_PUT_ATT(NCID2,latID,"long_name","latitude")
+      status=NF90_PUT_ATT(NCID2,lonID,"long_name","longitude")
+      status=NF90_PUT_ATT(NCID2,modtimeID,"long_name","Model time")
+      status=NF90_ENDDEF(NCID2)
+      status=NF90_CLOSE(NCID2)
+      write(*,*) 'Created out.nc'
+      end subroutine create_nc_file
+      
+!=======================================================================
+
