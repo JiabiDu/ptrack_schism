@@ -81,7 +81,7 @@
         real(kind=dbl_kind), parameter :: pi=3.1415926d0 
 
 !...  	Important variables
-        integer, save :: np,ne,ns,nvrt,mnei,mod_part,ibf,istiff,ivcor,kz,nsig
+        integer, save :: np,ne,ns,nvrt,mnei,mod_part,ibf,istiff,ivcor,kz,nsig,newio
       	real(kind=dbl_kind), save :: h0,rho0,dt,settling_velocity
         real,save :: h_c,theta_b,theta_f,h_s !s_con1
 
@@ -156,7 +156,7 @@
 !... read in parameters from param.in,jdu
       namelist /CORE/ settling_velocity,ncDir, nscreen, mod_part,ibf,&
                       &istiff,ics,slam0,sfea0,h0,rnday,dtm,nspool,ihfskip,&
-                      &ndeltp
+                      &ndeltp,newio
       namelist /OIL/ ihdf,hdc,horcon,ibuoy,iwind,pbeach
       open (action='read', file='param.in', iostat=rc, newunit=fu)
       read (nml=CORE, iostat=rc, unit=fu)
@@ -281,7 +281,7 @@
 !...  Read in header (if quads r split in binary, the hgrid read in here
 !     has different conn table from hgrid.gr3)
       ntime=rnday*86400/dt !total # of records
-      ifile=1 !for st_m=0; starting stack #
+      ifile=1 !for st_m=0, ie the forward model; starting stack #
       do i=1,ntime/nrec+1
         if(st_m/dt>(i-1)*nrec.and.st_m/dt<=i*nrec) then
           ifile=i
@@ -298,38 +298,40 @@
 
       write(ifile_char,'(i12)') ifile
       ifile_char=adjustl(ifile_char); len_char=len_trim(ifile_char)
-      file63=trim(ncDir)//'schout_'//ifile_char(1:len_char)//'.nc'
-      write(*,*) trim(file63)
-      iret=nf90_open(trim(adjustl(file63)),OR(NF90_NETCDF4,NF90_NOWRITE),ncid)
-      iret=nf90_inq_varid(ncid,'elev',ielev_id)
-      if(iret/=nf90_NoErr) stop 'elev not found'
-      iret=nf90_inq_varid(ncid,'hvel',luv)
-      if(iret/=nf90_NoErr) stop 'hvel not found'
-      iret=nf90_inq_varid(ncid,'vertical_velocity',lw)
-      if(iret/=nf90_NoErr) stop 'w not found'
-      if(mod_part==1) then
-        iret=nf90_inq_varid(ncid,'wind_speed',lwind)
-        if(iret/=nf90_NoErr) stop 'wind not found'
-        iret=nf90_inq_varid(ncid,'diffusivity',ltdff)
-        if(iret/=nf90_NoErr) stop 'diffusivity not found'
-      endif !mod_part
-
-      iret=nf90_inq_dimid(ncid,'nSCHISM_vgrid_layers',i)
-      iret=nf90_Inquire_Dimension(ncid,i,len=nvrt)
-      iret=nf90_inq_varid(ncid,'SCHISM_hgrid_face_nodes',varid1)
-      iret=nf90_Inquire_Variable(ncid,varid1,dimids=dimids(1:2))
-      iret=nf90_Inquire_Dimension(ncid,dimids(1),len=nvtx)
-      iret=nf90_Inquire_Dimension(ncid,dimids(2),len=ne)
-      if(nvtx/=4) stop 'vtx/=4'
-      iret=nf90_inq_varid(ncid,'SCHISM_hgrid_node_x',varid2)
-      iret=nf90_Inquire_Variable(ncid,varid2,dimids=dimids)
-      iret=nf90_Inquire_Dimension(ncid,dimids(1),len=np)
-      iret=nf90_inq_varid(ncid,'time',itime_id)
-      iret=nf90_Inquire_Variable(ncid,itime_id,dimids=dimids)
-      iret=nf90_Inquire_Dimension(ncid,dimids(1),len=nrec)
-      if(iret.ne.NF90_NOERR) then
-        print*, nf90_strerror(iret) 
-        stop 'readheader: error reading header'
+      if (newio==0) then
+        file63=trim(ncDir)//'schout_'//ifile_char(1:len_char)//'.nc'
+        write(*,*) trim(file63)
+        iret=nf90_open(trim(adjustl(file63)),OR(NF90_NETCDF4,NF90_NOWRITE),ncid)
+        iret=nf90_inq_varid(ncid,'elev',ielev_id)
+        if(iret/=nf90_NoErr) stop 'elev not found'
+        iret=nf90_inq_varid(ncid,'hvel',luv)
+        if(iret/=nf90_NoErr) stop 'hvel not found'
+        iret=nf90_inq_varid(ncid,'vertical_velocity',lw)
+        if(iret/=nf90_NoErr) stop 'w not found'
+        if(mod_part==1) then
+          iret=nf90_inq_varid(ncid,'wind_speed',lwind)
+          if(iret/=nf90_NoErr) stop 'wind not found'
+          iret=nf90_inq_varid(ncid,'diffusivity',ltdff)
+          if(iret/=nf90_NoErr) stop 'diffusivity not found'
+        endif !mod_part
+      
+        iret=nf90_inq_dimid(ncid,'nSCHISM_vgrid_layers',i)
+        iret=nf90_Inquire_Dimension(ncid,i,len=nvrt)
+        iret=nf90_inq_varid(ncid,'SCHISM_hgrid_face_nodes',varid1)
+        iret=nf90_Inquire_Variable(ncid,varid1,dimids=dimids(1:2))
+        iret=nf90_Inquire_Dimension(ncid,dimids(1),len=nvtx)
+        iret=nf90_Inquire_Dimension(ncid,dimids(2),len=ne)
+        if(nvtx/=4) stop 'vtx/=4'
+        iret=nf90_inq_varid(ncid,'SCHISM_hgrid_node_x',varid2)
+        iret=nf90_Inquire_Variable(ncid,varid2,dimids=dimids)
+        iret=nf90_Inquire_Dimension(ncid,dimids(1),len=np)
+        iret=nf90_inq_varid(ncid,'time',itime_id)
+        iret=nf90_Inquire_Variable(ncid,itime_id,dimids=dimids)
+        iret=nf90_Inquire_Dimension(ncid,dimids(1),len=nrec)
+        if(iret.ne.NF90_NOERR) then
+          print*, nf90_strerror(iret) 
+          stop 'readheader: error reading header'
+        endif
       endif
 
       allocate(x(np),y(np),dp(np),kbp00(np),i34(ne),elnode(4,ne),timeout(nrec), &
@@ -337,15 +339,16 @@
      &eta1(np),eta2(np),eta3(np),xctr(ne),yctr(ne),isbnd(np),wnx1(np), &
      &wnx2(np),wny1(np),wny2(np),dldxy(3,2,ne),real_ar(nvrt,np),stat=istat)
       if(istat/=0) stop 'failed to allocate (3)'
-
-      iret=nf90_get_var(ncid,varid1,elnode)
-      iret=nf90_get_var(ncid,varid2,x)
-      iret=nf90_inq_varid(ncid,'SCHISM_hgrid_node_y',varid1)
-      iret=nf90_get_var(ncid,varid1,y)
-      iret=nf90_inq_varid(ncid,'depth',varid1)
-      iret=nf90_get_var(ncid,varid1,dp)
-      iret=nf90_inq_varid(ncid,'node_bottom_index',varid1)
-      iret=nf90_get_var(ncid,varid1,kbp00)
+      if (newio==0) then
+        iret=nf90_get_var(ncid,varid1,elnode)
+        iret=nf90_get_var(ncid,varid2,x)
+        iret=nf90_inq_varid(ncid,'SCHISM_hgrid_node_y',varid1)
+        iret=nf90_get_var(ncid,varid1,y)
+        iret=nf90_inq_varid(ncid,'depth',varid1)
+        iret=nf90_get_var(ncid,varid1,dp)
+        iret=nf90_inq_varid(ncid,'node_bottom_index',varid1)
+        iret=nf90_get_var(ncid,varid1,kbp00)
+      endif
 
       !Leave it open as this is the 1st stack to read from
       !iret=nf90_close(ncid)
@@ -623,12 +626,14 @@
         ifile=ifile+ibf !stack #
         write(ifile_char,'(i12)') ifile
         ifile_char=adjustl(ifile_char); len_char=len_trim(ifile_char)
-        file63=trim(ncDir)//'schout_'//ifile_char(1:len_char)//'.nc'
-        write(*,*) trim(file63)
-        iret=nf90_open(trim(adjustl(file63)),OR(NF90_NETCDF4,NF90_NOWRITE),ncid)
-        !time is double
-        iret=nf90_inq_varid(ncid,'time',itime_id)
-        iret=nf90_get_var(ncid,itime_id,timeout,(/1/),(/nrec/))
+        if (newio==0) then
+          file63=trim(ncDir)//'schout_'//ifile_char(1:len_char)//'.nc'
+          write(*,*) trim(file63)
+          iret=nf90_open(trim(adjustl(file63)),OR(NF90_NETCDF4,NF90_NOWRITE),ncid)
+          !time is double
+          iret=nf90_inq_varid(ncid,'time',itime_id)
+          iret=nf90_get_var(ncid,itime_id,timeout,(/1/),(/nrec/))
+        endif
 
         !Reset record #
         if(ibf==1) then
@@ -657,22 +662,23 @@
       endif !ibf
 
       if(irec1<1.or.irec1>nrec) stop 'record out of bound'
-
-      iret=nf90_get_var(ncid,ielev_id,real_ar(1,1:np),(/1,irec1/),(/np,1/))
-      eta2=real_ar(1,1:np)
-      iret=nf90_get_var(ncid,luv,real_ar(1:nvrt,1:np),(/1,1,1,irec1/),(/1,nvrt,np,1/))
-      uu2(:,:)=transpose(real_ar(1:nvrt,1:np))
-      iret=nf90_get_var(ncid,luv,real_ar(1:nvrt,1:np),(/2,1,1,irec1/),(/1,nvrt,np,1/))
-      vv2(:,:)=transpose(real_ar(1:nvrt,1:np))
-      iret=nf90_get_var(ncid,lw,real_ar(1:nvrt,1:np),(/1,1,irec1/),(/nvrt,np,1/))
-      ww2(:,:)=transpose(real_ar(1:nvrt,1:np))
-      if(mod_part==1) then
-        iret=nf90_get_var(ncid,lwind,real_ar(1:2,1:np),(/1,1,irec1/),(/2,np,1/))
-        wnx2(:)=real_ar(1,1:np)
-        wny2(:)=real_ar(2,1:np)
-        iret=nf90_get_var(ncid,ltdff,real_ar(1:nvrt,1:np),(/1,1,irec1/),(/nvrt,np,1/))
-        vf2(:,:)=transpose(real_ar(1:nvrt,1:np))
-      endif !mod_part
+      if (newio==0) then
+        iret=nf90_get_var(ncid,ielev_id,real_ar(1,1:np),(/1,irec1/),(/np,1/))
+        eta2=real_ar(1,1:np)
+        iret=nf90_get_var(ncid,luv,real_ar(1:nvrt,1:np),(/1,1,1,irec1/),(/1,nvrt,np,1/))
+        uu2(:,:)=transpose(real_ar(1:nvrt,1:np))
+        iret=nf90_get_var(ncid,luv,real_ar(1:nvrt,1:np),(/2,1,1,irec1/),(/1,nvrt,np,1/))
+        vv2(:,:)=transpose(real_ar(1:nvrt,1:np))
+        iret=nf90_get_var(ncid,lw,real_ar(1:nvrt,1:np),(/1,1,irec1/),(/nvrt,np,1/))
+        ww2(:,:)=transpose(real_ar(1:nvrt,1:np))
+        if(mod_part==1) then
+          iret=nf90_get_var(ncid,lwind,real_ar(1:2,1:np),(/1,1,irec1/),(/2,np,1/))
+          wnx2(:)=real_ar(1,1:np)
+          wny2(:)=real_ar(2,1:np)
+          iret=nf90_get_var(ncid,ltdff,real_ar(1:nvrt,1:np),(/1,1,irec1/),(/nvrt,np,1/))
+          vf2(:,:)=transpose(real_ar(1:nvrt,1:np))
+        endif !mod_part
+      endif
 
       irec1=irec1+ibf
 
