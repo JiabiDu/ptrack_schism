@@ -1,0 +1,8 @@
+2022.9.28
+add resuspension: reading bottom shear stress; set particle not movable after reaching the bottom when bottom shear stress is less the crtical depositional shear stress; add sediment age; resuspened into the last layer when the bottom shear stress is larger than the critical erosional shear stress
+
+add random walk, propotional to eddy diffusivity
+
+add newIO
+
+
