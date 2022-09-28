@@ -10,4 +10,5 @@ tag=os.popen('git log').read().split('\n')[0].split()[1][:8]
 cmd='mv ~/ptrack_schism/ptrack3.WW ./ptrack3.WW.{}'.format(tag)
 print(cmd); os.system(cmd)
 
- 
+
+
