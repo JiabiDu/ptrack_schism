@@ -1813,8 +1813,9 @@
 !======================================================================
       subroutine create_nc_file(ncFile)
       use global
+      use netcdf
       integer:: NCID2,numparID,timeID,modtimeID,lonID,latID,depthID
-      character(len=200) ::ncFile
+      character(len=200):: ncFile
       status=NF90_CREATE(TRIM(ncFile), NF90_NETCDF4, NCID2)
       !define dimensions
       status=NF90_DEF_DIM(NCID2,'numpar',nparticle,numparID)
@@ -1832,6 +1833,7 @@
       status=NF90_ENDDEF(NCID2)
       status=NF90_CLOSE(NCID2)
       write(*,*) 'Created out.nc'
+      return
       end subroutine create_nc_file
       
 !=======================================================================

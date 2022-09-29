@@ -7,7 +7,7 @@ print(cmd); os.system(cmd)
 
 #add git tag
 tag=os.popen('git log').read().split('\n')[0].split()[1][:8]
-cmd='mv ~/ptrack_schism/ptrack3.WW ./ptrack3.WW.{}'.format(tag)
+cmd='mv ~/ptrack_schism/ptrack3.WW ./ptrack3.WW.{}; ln -sf ptrack3.WW.{} ptrack3.WW; ./ptrack3.WW'.format(tag,tag)
 print(cmd); os.system(cmd)
 
 
