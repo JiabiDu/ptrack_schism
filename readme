@@ -10,3 +10,11 @@ add random walk, propotional to eddy diffusivity
 add newIO
 
 
+
+
+============================ LESSSONS =============================
+1. need to add 'return' in subroutine, otherwise error will show up
+
+2. when push to remote repo, need to "git fetch" to update the current repo
+
+3. 
