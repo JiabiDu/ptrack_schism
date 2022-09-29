@@ -1,5 +1,5 @@
 &CORE
-settling_velocity=1 !settling velocity, m/day
+settling_velocity=0 !settling velocity, m/day
 ncDir='/scratch/user/emilyjane1215/galveston/t92/outnc/'  !nc output directory
 newio=0               !1 for new IO; 0 for old IO
 nscreen=1             !1 for screen output
