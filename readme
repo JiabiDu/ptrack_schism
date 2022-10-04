@@ -1,15 +1,15 @@
 2022.9.28
+add variable: status, dob, age, life (1000 at the beginning)
+add option to settling after certain of age, add module for larvae
+add mortality as a function of salinity and temperature for oyster larvae
+add random warlk, propotional to eddy diffusivity
+add new IO
+add module microplastic, oyster, call the calculation if the module is on, within the ptrack3.f90, 
 add resuspension: 
    1. reading bottom shear stress; 
    2. set particle not movable after reaching the bottom when bottom shear stress is less the crtical depositional shear stress; 
    3. add sediment age; 
    4. resuspened into the last layer when the bottom shear stress is larger than the critical erosional shear stress
-
-add random walk, propotional to eddy diffusivity
-
-add newIO
-
-
 
 
 ============================ LESSSONS =============================
@@ -17,4 +17,5 @@ add newIO
 
 2. when push to remote repo, need to "git fetch" to update the current repo
 
-3. 
+3. make the parameters in the global module and avoid declare any of them in other subroutines. 
+ 
