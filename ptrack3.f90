@@ -127,8 +127,9 @@
       real*8 :: vxl(4,2),vyl(4,2),vzl(4,2),vxn(4),vyn(4),vzn(4),arco(3), &
      &dx(10),dy(10),dz(10),val(4,2),vbl(4,2),vcl(4,2),vdl(4,2),van(4),vcn(4),vdn(4),vwx(4),vwy(4)
       integer :: nodel2(3),varid1,varid2,dimids(3),istat,nvtx,iret,&
-     &prcount,NCID2,numparID,timeID,modtimeID,lonID,latID,depthID,fu,rc
-      character(len=200) :: file63,ncFile,ncDir
+     &prcount,NCID2,numparID,timeID,modtimeID,lonID,latID,depthID,fu,rc,&
+     &ielev_id,iu_id,iv_id,iw_id,iwindx,iwindy
+      character(len=200) :: file63,ncFile,ncDir,file2d,fileS,fileT,fileU,fileV,fileW,fileD
 
       iseed=5 !Random seed used only for oil spill model 
       rotate_angle=3.0*(pi/180.0)   !!Ekman effects, angle between wind and current directions
@@ -332,6 +333,61 @@
           print*, nf90_strerror(iret) 
           stop 'readheader: error reading header'
         endif
+      else !newio==1, -jd
+        file2d=trim(ncDir)//'out2d_'//ifile_char(1:len_char)//'.nc'
+        write(*,*) trim(file2d)
+        iret=nf90_open(trim(adjustl(file2d)),OR(NF90_NETCDF4,NF90_NOWRITE),ncid)
+        iret=nf90_inq_varid(ncid,'elevation',ielev_id)
+        if(iret/=nf90_NoErr) stop 'elevation not found'
+        
+        fileU=trim(ncDir)//'horizontalVelX_'//ifile_char(1:len_char)//'.nc'
+        write(*,*) trim(fileU)
+        iret=nf90_open(trim(adjustl(fileU)),OR(NF90_NETCDF4,NF90_NOWRITE),ncidU)
+        iret=nf90_inq_varid(ncidU,'horizontalVelX',iu_id)
+        if(iret/=nf90_NoErr) stop 'horizontalVelX not found'
+        
+        fileV=trim(ncDir)//'horizontalVelY_'//ifile_char(1:len_char)//'.nc'
+        write(*,*) trim(fileV)
+        iret=nf90_open(trim(adjustl(fileV)),OR(NF90_NETCDF4,NF90_NOWRITE),ncidV)
+        iret=nf90_inq_varid(ncidV,'horizontalVelY',iv_id)
+        if(iret/=nf90_NoErr) stop 'horizontalVelY not found'
+        
+        fileW=trim(ncDir)//'verticalVelocity_'//ifile_char(1:len_char)//'.nc'
+        write(*,*) trim(fileW)
+        iret=nf90_open(trim(adjustl(fileW)),OR(NF90_NETCDF4,NF90_NOWRITE),ncidW)
+        iret=nf90_inq_varid(ncidW,'verticalVelocity',iw_id)
+        if(iret/=nf90_NoErr) stop 'verticalVelocity not found'
+        
+        if(mod_part==1) then
+          iret=nf90_inq_varid(ncid,'windSpeedX',iwindx)  !in out2d
+          if(iret/=nf90_NoErr) stop 'wind speed X not found'
+          iret=nf90_inq_varid(ncid,'windSpeedY',iwindy)  !in out2d
+          if(iret/=nf90_NoErr) stop 'wind speed Y not found'
+          
+          fileD=trim(ncDir)//'diffusivity_'//ifile_char(1:len_char)//'.nc'
+          write(*,*) trim(fileD)
+          iret=nf90_open(trim(adjustl(fileD)),OR(NF90_NETCDF4,NF90_NOWRITE),ncidD)
+          iret=nf90_inq_varid(ncidD,'diffusivity',idiff_id)
+          if(iret/=nf90_NoErr) stop 'diffusivity not found'
+        endif !mod_part
+      
+        iret=nf90_inq_dimid(ncid,'nSCHISM_vgrid_layers',i)
+        iret=nf90_Inquire_Dimension(ncid,i,len=nvrt)
+        iret=nf90_inq_varid(ncid,'SCHISM_hgrid_face_nodes',varid1)
+        iret=nf90_Inquire_Variable(ncid,varid1,dimids=dimids(1:2))
+        iret=nf90_Inquire_Dimension(ncid,dimids(1),len=nvtx)
+        iret=nf90_Inquire_Dimension(ncid,dimids(2),len=ne)
+        if(nvtx/=4) stop 'vtx/=4'
+        iret=nf90_inq_varid(ncid,'SCHISM_hgrid_node_x',varid2)
+        iret=nf90_Inquire_Variable(ncid,varid2,dimids=dimids)
+        iret=nf90_Inquire_Dimension(ncid,dimids(1),len=np)
+        iret=nf90_inq_varid(ncid,'time',itime_id)
+        iret=nf90_Inquire_Variable(ncid,itime_id,dimids=dimids)
+        iret=nf90_Inquire_Dimension(ncid,dimids(1),len=nrec)
+        if(iret.ne.NF90_NOERR) then
+          print*, nf90_strerror(iret) 
+          stop 'readheader: error reading header'
+        endif
       endif
 
       allocate(x(np),y(np),dp(np),kbp00(np),i34(ne),elnode(4,ne),timeout(nrec), &
@@ -339,15 +395,20 @@
      &eta1(np),eta2(np),eta3(np),xctr(ne),yctr(ne),isbnd(np),wnx1(np), &
      &wnx2(np),wny1(np),wny2(np),dldxy(3,2,ne),real_ar(nvrt,np),stat=istat)
       if(istat/=0) stop 'failed to allocate (3)'
+      
+      !get grid infomation -jd
+      iret=nf90_get_var(ncid,varid1,elnode)
+      iret=nf90_get_var(ncid,varid2,x)
+      iret=nf90_inq_varid(ncid,'SCHISM_hgrid_node_y',varid1)
+      iret=nf90_get_var(ncid,varid1,y)
+      iret=nf90_inq_varid(ncid,'depth',varid1)
+      iret=nf90_get_var(ncid,varid1,dp)
       if (newio==0) then
-        iret=nf90_get_var(ncid,varid1,elnode)
-        iret=nf90_get_var(ncid,varid2,x)
-        iret=nf90_inq_varid(ncid,'SCHISM_hgrid_node_y',varid1)
-        iret=nf90_get_var(ncid,varid1,y)
-        iret=nf90_inq_varid(ncid,'depth',varid1)
-        iret=nf90_get_var(ncid,varid1,dp)
         iret=nf90_inq_varid(ncid,'node_bottom_index',varid1)
         iret=nf90_get_var(ncid,varid1,kbp00)
+      else !newio==1 -jd
+        iret=nf90_inq_varid(ncid,'bottom_index_node',varid1)
+        iret=nf90_get_var(ncid,varid1,kbp00) 
       endif
 
       !Leave it open as this is the 1st stack to read from
@@ -628,13 +689,21 @@
         ifile_char=adjustl(ifile_char); len_char=len_trim(ifile_char)
         if (newio==0) then
           file63=trim(ncDir)//'schout_'//ifile_char(1:len_char)//'.nc'
-          write(*,*) trim(file63)
-          iret=nf90_open(trim(adjustl(file63)),OR(NF90_NETCDF4,NF90_NOWRITE),ncid)
-          !time is double
-          iret=nf90_inq_varid(ncid,'time',itime_id)
-          iret=nf90_get_var(ncid,itime_id,timeout,(/1/),(/nrec/))
+        else !newio==1 -jd
+          file63=trim(ncDir)//'out2d_'//ifile_char(1:len_char)//'.nc'
+          fileU=trim(ncDir)//'horizontalVelX_'//ifile_char(1:len_char)//'.nc'
+          iret=nf90_open(trim(adjustl(fileU)),OR(NF90_NETCDF4,NF90_NOWRITE),ncidU)
+          fileV=trim(ncDir)//'horizontalVelY_'//ifile_char(1:len_char)//'.nc'
+          iret=nf90_open(trim(adjustl(fileV)),OR(NF90_NETCDF4,NF90_NOWRITE),ncidV)
+          fileW=trim(ncDir)//'verticalVelocity_'//ifile_char(1:len_char)//'.nc'
+          iret=nf90_open(trim(adjustl(fileW)),OR(NF90_NETCDF4,NF90_NOWRITE),ncidW)
         endif
-
+        write(*,*) trim(file63)
+        iret=nf90_open(trim(adjustl(file63)),OR(NF90_NETCDF4,NF90_NOWRITE),ncid)
+        !time is double
+        iret=nf90_inq_varid(ncid,'time',itime_id)
+        iret=nf90_get_var(ncid,itime_id,timeout,(/1/),(/nrec/))
+        
         !Reset record #
         if(ibf==1) then
           irec1=1
@@ -678,6 +747,23 @@
           iret=nf90_get_var(ncid,ltdff,real_ar(1:nvrt,1:np),(/1,1,irec1/),(/nvrt,np,1/))
           vf2(:,:)=transpose(real_ar(1:nvrt,1:np))
         endif !mod_part
+      else !newio==1 -jd
+        iret=nf90_get_var(ncid,ielev_id,real_ar(1,1:np),(/1,irec1/),(/np,1/))
+        eta2=real_ar(1,1:np)
+        iret=nf90_get_var(ncidU,iu_id,real_ar(1:nvrt,1:np),(/1,1,irec1/),(/nvrt,np,1/))
+        uu2(:,:)=transpose(real_ar(1:nvrt,1:np))
+        iret=nf90_get_var(ncidV,iv_id,real_ar(1:nvrt,1:np),(/1,1,irec1/),(/nvrt,np,1/))
+        vv2(:,:)=transpose(real_ar(1:nvrt,1:np))
+        iret=nf90_get_var(ncidW,iw_id,real_ar(1:nvrt,1:np),(/1,1,irec1/),(/nvrt,np,1/))
+        ww2(:,:)=transpose(real_ar(1:nvrt,1:np))
+        if(mod_part==1) then
+          iret=nf90_get_var(ncid,iwindx,real_ar(1,1:np),(/1,irec1/),(/np,1/))
+          wnx2=real_ar(1,1:np)
+          iret=nf90_get_var(ncid,iwindy,real_ar(1,1:np),(/1,irec1/),(/np,1/))
+          wny2=real_ar(1,1:np)
+          iret=nf90_get_var(ncidD,idiff_id,real_ar(1:nvrt,1:np),(/1,1,irec1/),(/nvrt,np,1/))
+          vf2(:,:)=transpose(real_ar(1:nvrt,1:np))
+        endif
       endif
 
       irec1=irec1+ibf
@@ -714,7 +800,7 @@
       enddo !i
       
 !...  Store info for first step
-      if(it==iths) then
+      if(it==iths) then  !at the very begining
         uu1=uu2; vv1=vv2; ww1=ww2
         vf1=vf2; wnx1=wnx2; wny1=wny2
       endif 
@@ -1056,7 +1142,7 @@
       status=NF90_PUT_VAR(NCID2, latID, ypar2,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
       status=NF90_PUT_VAR(NCID2, depthID, zpar,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
       STATUS=NF_CLOSE(NCID2)
-      write(*,*) 'write into',TRIM(ncFile)
+      write(*,*) 'write into ',TRIM(ncFile)
 
 !...  Store info for next step
       uu1=uu2; vv1=vv2; ww1=ww2; eta1=eta2
