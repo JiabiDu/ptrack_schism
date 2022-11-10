@@ -81,12 +81,10 @@
         real(kind=dbl_kind), parameter :: pi=3.1415926d0 
 
 !...  	Important variables
-        integer, save :: ics,np,ne,ns,nvrt,mnei,mod_part,ibf,istiff,ivcor,kz,nsig,newio,&
-        &ihfskip,ndeltp,ihdf,hdc,horcon,ibuoy,iwind,nscreen
-      	real(kind=dbl_kind), save :: h0,rho0,dt,settling_velocity,slam0,sfea0,dtm,rnday
-        real,save :: h_c,theta_b,theta_f,h_s,pbeach !s_con1
-        character(len=200) :: ncDir   
-      
+        integer, save :: np,ne,ns,nvrt,mnei,mod_part,ibf,istiff,ivcor,kz,nsig,newio
+      	real(kind=dbl_kind), save :: h0,rho0,dt,settling_velocity
+        real,save :: h_c,theta_b,theta_f,h_s !s_con1
+
 !...    Output handles
         character(len=48), save :: start_time,version
         character(len=12), save :: ifile_char
@@ -130,7 +128,7 @@
      &dx(10),dy(10),dz(10),val(4,2),vbl(4,2),vcl(4,2),vdl(4,2),van(4),vcn(4),vdn(4),vwx(4),vwy(4)
       integer :: nodel2(3),varid1,varid2,dimids(3),istat,nvtx,iret,&
      &prcount,NCID2,numparID,timeID,modtimeID,lonID,latID,depthID,fu,rc
-      character(len=200) :: file63,ncFile
+      character(len=200) :: file63,ncFile,ncDir
 
       iseed=5 !Random seed used only for oil spill model 
       rotate_angle=3.0*(pi/180.0)   !!Ekman effects, angle between wind and current directions
@@ -156,14 +154,39 @@
       ifort12=0 !init
       open(11,file='fort.11',status='replace')
 !... read in parameters from param.in,jdu
-      call read_param()
+      namelist /CORE/ settling_velocity,ncDir, nscreen, mod_part,ibf,&
+                      &istiff,ics,slam0,sfea0,h0,rnday,dtm,nspool,ihfskip,&
+                      &ndeltp,newio
+      namelist /OIL/ ihdf,hdc,horcon,ibuoy,iwind,pbeach
+      open (action='read', file='param.in', iostat=rc, newunit=fu)
+      read (nml=CORE, iostat=rc, unit=fu)
+      read (nml=OIL, iostat=rc, unit=fu)
+      
+!... check the parameters    
       write(*,*) 'nc directory:',trim(ncDir)
-      write(*,*) 'settling velocity (m/s):',settling_velocity
+      write(*,*) 'settling velocity (m/day):',settling_velocity  
+      if(mod_part<0.or.mod_part>1) stop 'Unknown model'
+      if(iabs(ibf)/=1) then
+        write(*,*)'Wrong ibf',ibf
+        stop
+      endif
+      if(mod_part==1.and.ibf/=1) stop 'Oil spill must have ibf=1'
+      settling_velocity=settling_velocity/86400
+      if(istiff/=0.and.istiff/=1) then
+        write(*,*)'Wrong istiff',istiff
+        stop
+      endif
+      slam0=slam0/180*pi
+      sfea0=sfea0/180*pi
+      if(mod(ihfskip,nspool)/=0) then
+        write(*,*)'ihfskip must be a multiple of nspool'
+        stop
+      endif
+      nrec=ihfskip/nspool !# of records (steps) per stack
 
 !...  Read in particles
       open(95,file='particle.bp',status='old')
       read(95,*) nparticle
-      write(*,*) 'number of particles',nparticle
       allocate(zpar0(nparticle),xpar(nparticle),ypar(nparticle),zpar(nparticle),xpar2(nparticle),ypar2(nparticle),&
      &st_p(nparticle),idp(nparticle),ielpar(nparticle),levpar(nparticle),upar(nparticle), &
      &vpar(nparticle),wpar(nparticle),iabnorm(nparticle),ist(nparticle),inbr(nparticle), &
@@ -199,7 +222,23 @@
 
 !... create netcdf output file  !jdu TODO write the major parameters in the global attributes
       ncFile='out.nc'
-      call create_nc_file(ncFile)
+      status=NF90_CREATE(TRIM(ncFile), NF90_NETCDF4, NCID2)
+      !define dimensions
+      status=NF90_DEF_DIM(NCID2,'numpar',nparticle,numparID)
+      status=NF90_DEF_DIM(NCID2,'time',NF90_UNLIMITED,timeID)
+      !define var
+      status=NF90_DEF_VAR(NCID2,'model_time',NF90_DOUBLE,(/timeID/),modtimeID)
+      status=NF90_DEF_VAR(NCID2,'lon',NF90_FLOAT,(/numparID,timeID/),lonID)
+      status=NF90_DEF_VAR(NCID2,'lat',NF90_FLOAT,(/numparID,timeID/),latID)
+      status=NF90_DEF_VAR(NCID2,'depth',NF90_FLOAT,(/numparID,timeID/),depthID)
+      !put attributes to each variable
+      status=NF90_PUT_ATT(NCID2,depthID,"long_name","depth")
+      status=NF90_PUT_ATT(NCID2,latID,"long_name","latitude")
+      status=NF90_PUT_ATT(NCID2,lonID,"long_name","longitude")
+      status=NF90_PUT_ATT(NCID2,modtimeID,"long_name","Model time")
+      status=NF90_ENDDEF(NCID2)
+      status=NF90_CLOSE(NCID2)
+      write(*,*) 'Created out.nc'
 
 !...  Init. ist etc; some of these are only used in certain models
 !     ist(1:nparticles): 0 - inactive b4 release
@@ -881,7 +920,7 @@
           endif !mod_part
 
           call quicksearch(1,idt,i,nnel0,jlev0,dtb,x0,y0,z0,xt,yt,zt,nnel,jlev, &
-     &nodel2,arco,zrat,nfl,eta_p,dp_p,ztmp,kbpl,ist(i),inbr(i),rnds)
+     &nodel2,arco,zrat,nfl,eta_p,dp_p,ztmp,kbpl,ist(i),inbr(i),rnds,pbeach)
 
 !	  nnel not dry
 !	  Interpolate in time
@@ -1358,13 +1397,13 @@
 !********************************************************************************
 !
       subroutine quicksearch(iloc,idt,ipar,nnel0,jlev0,time,x0,y0,z0,xt,yt,zt,nnel1,jlev1, &
-     &nodel2,arco,zrat,nfl,etal,dp_p,ztmp,kbpl,ist2,inbr2,rnds)
+     &nodel2,arco,zrat,nfl,etal,dp_p,ztmp,kbpl,ist2,inbr2,rnds,pbeach)
 
       use global
       implicit real(kind=dbl_kind)(a-h,o-z),integer(i-n)
 
       integer, intent(in) :: iloc,idt,ipar,nnel0,jlev0
-      real(kind=dbl_kind), intent(in) :: time,x0,y0,z0,rnds
+      real(kind=dbl_kind), intent(in) :: time,x0,y0,z0,rnds,pbeach
       integer, intent(out) :: nnel1,jlev1,nodel2(3),nfl,kbpl,ist2,inbr2
       real(kind=dbl_kind), intent(inout) :: xt,yt,zt
       real(kind=dbl_kind), intent(out) :: arco(3),zrat,etal,dp_p,ztmp(nvrt)
@@ -1788,63 +1827,3 @@
       end subroutine pt_in_poly3
 
 !======================================================================
-      subroutine create_nc_file(ncFile)
-      use global
-      use netcdf
-      integer:: NCID2,numparID,timeID,modtimeID,lonID,latID,depthID
-      character(len=200):: ncFile
-      status=NF90_CREATE(TRIM(ncFile), NF90_NETCDF4, NCID2)
-      !define dimensions
-      status=NF90_DEF_DIM(NCID2,'numpar',nparticle,numparID)
-      status=NF90_DEF_DIM(NCID2,'time',NF90_UNLIMITED,timeID)
-      !define var
-      status=NF90_DEF_VAR(NCID2,'model_time',NF90_DOUBLE,(/timeID/),modtimeID)
-      status=NF90_DEF_VAR(NCID2,'lon',NF90_FLOAT,(/numparID,timeID/),lonID)
-      status=NF90_DEF_VAR(NCID2,'lat',NF90_FLOAT,(/numparID,timeID/),latID)
-      status=NF90_DEF_VAR(NCID2,'depth',NF90_FLOAT,(/numparID,timeID/),depthID)
-      !put attributes to each variable
-      status=NF90_PUT_ATT(NCID2,depthID,"long_name","depth")
-      status=NF90_PUT_ATT(NCID2,latID,"long_name","latitude")
-      status=NF90_PUT_ATT(NCID2,lonID,"long_name","longitude")
-      status=NF90_PUT_ATT(NCID2,modtimeID,"long_name","Model time")
-      status=NF90_ENDDEF(NCID2)
-      status=NF90_CLOSE(NCID2)
-      write(*,*) 'Created out.nc'
-      return
-      end subroutine create_nc_file
-      
-!=======================================================================
-      subroutine read_param()
-      use global
-      integer::rc,fu
-      namelist /CORE/ settling_velocity,ncDir, nscreen, mod_part,ibf,&
-              &istiff,ics,slam0,sfea0,h0,rnday,dtm,nspool,ihfskip,&
-              &ndeltp,newio
-      namelist /OIL/ ihdf,hdc,horcon,ibuoy,iwind,pbeach
-      open (action='read', file='param.in', iostat=rc, newunit=fu)
-      read (nml=CORE, iostat=rc, unit=fu)
-      read (nml=OIL, iostat=rc, unit=fu)
-
-      !... check the parameters    
-      write(*,*) 'nc directory:',trim(ncDir)
-      write(*,*) 'settling velocity (m/day):',settling_velocity  
-      if(mod_part<0.or.mod_part>1) stop 'Unknown model'
-      if(iabs(ibf)/=1) then
-      write(*,*)'Wrong ibf',ibf
-      stop
-      endif
-      if(mod_part==1.and.ibf/=1) stop 'Oil spill must have ibf=1'
-      settling_velocity=settling_velocity/86400
-      if(istiff/=0.and.istiff/=1) then
-      write(*,*)'Wrong istiff',istiff
-      stop
-      endif
-      slam0=slam0/180*pi
-      sfea0=sfea0/180*pi
-      if(mod(ihfskip,nspool)/=0) then
-      write(*,*)'ihfskip must be a multiple of nspool'
-      stop
-      endif
-      nrec=ihfskip/nspool !# of records (steps) per stack
-      return
-      end subroutine read_param
