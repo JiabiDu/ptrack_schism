@@ -679,7 +679,6 @@
       do it=iths,it2,ibf !it is total time record #
 !--------------------------------------------------------------------------
       time=it*dt
-      write(*,*) 'jd01',it, nrec, ifile 
 !...  Read in elevation and vel. info
       if((ibf==1.and.it>nrec*ifile).or.(ibf==-1.and.it<=nrec*(ifile-1))) then
         !Open next stack
@@ -698,8 +697,9 @@
           fileW=trim(ncDir)//'verticalVelocity_'//ifile_char(1:len_char)//'.nc'
           iret=nf90_open(trim(adjustl(fileW)),OR(NF90_NETCDF4,NF90_NOWRITE),ncidW)
         endif
-        write(*,*) trim(file63)
+        write(*,*) 'open file ',trim(file63)
         iret=nf90_open(trim(adjustl(file63)),OR(NF90_NETCDF4,NF90_NOWRITE),ncid)
+        if(iret/=nf90_NoErr) stop 'file not found'
         !time is double
         iret=nf90_inq_varid(ncid,'time',itime_id)
         iret=nf90_get_var(ncid,itime_id,timeout,(/1/),(/nrec/))
@@ -729,7 +729,6 @@
 !          irec5=irec05
 !        endif !mod_part
       endif !ibf
-      write(*,*) 'jd02'
       if(irec1<1.or.irec1>nrec) stop 'record out of bound'
       if (newio==0) then
         iret=nf90_get_var(ncid,ielev_id,real_ar(1,1:np),(/1,irec1/),(/np,1/))
@@ -765,7 +764,6 @@
           vf2(:,:)=transpose(real_ar(1:nvrt,1:np))
         endif
       endif
-      write(*,*) 'jd03'
       irec1=irec1+ibf
 
 !...  Store info for first step
@@ -782,11 +780,10 @@
 
 !...  Compute z-cor
       call levels
-      write(*,*) 'jd04,np,nvrt',np,nvrt
 !...  Deal with junks
       do i=1,np
         if(idry(i)==1) then
-          uu2=0; vv2=0; ww2=0; vf2=0
+          uu2(i,:)=0; vv2(i,:)=0; ww2(i,:)=0; vf2(i,:)=0
         else !note that the fill values in nc are based on init bottom, which may be different from kbp
           do k=1,nvrt
             if(k<=kbp(i)-1.or.abs(uu2(i,k))>1.e8) then
@@ -796,16 +793,13 @@
               vf2(i,k)=0
             endif
           enddo !k
-          if (mod(i,1000) == 0) write(*,*) 'deal junks',i,'/',np
         endif 
       enddo !i
-      write(*,*) 'jd05' 
 !...  Store info for first step
       if(it==iths) then  !at the very begining
         uu1=uu2; vv1=vv2; ww1=ww2
         vf1=vf2; wnx1=wnx2; wny1=wny2
       endif 
-      write(*,*) 'jd06'
 !...  compute hvis_e & hvis_e based on Smagorinsky Algorithm
       if(mod_part==1) then
         if(ihdf==0) then
@@ -848,7 +842,6 @@
           dhfx=hdc; dhfy=hdc; dhfz=3.0d-4
         endif
       endif !mod_part=1
-      write(*,*) 'jd07'
 
       if(nscreen.eq.1) write(*,*)'begin ptrack...'
 

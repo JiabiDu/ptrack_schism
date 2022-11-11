@@ -19,3 +19,12 @@ To do list:
 
 3. make the parameters in the global module and avoid declare any of them in other subroutines. 
  
+3. when dealing with junk values, 
+   if(idry(i)==1) then
+       uu2(i,:)=0; vv2(i,:)=0; ww2(i,:)=0; vf2(i,:)=0 
+    !! instead of uu2=0;vv2=0;ww2=0;vf2=0
+    otherwise the model will becoem extremely slow when there is dry element, as changing the entire array will cost much longer time than changing only one vector
+
+5. error in fort.11 when running run16c 'Impossible dry (7):       13946           1  0.500000000000000
+
+
