@@ -679,7 +679,7 @@
       do it=iths,it2,ibf !it is total time record #
 !--------------------------------------------------------------------------
       time=it*dt
-      
+      write(*,*) 'jd01',it, nrec, ifile 
 !...  Read in elevation and vel. info
       if((ibf==1.and.it>nrec*ifile).or.(ibf==-1.and.it<=nrec*(ifile-1))) then
         !Open next stack
@@ -729,7 +729,7 @@
 !          irec5=irec05
 !        endif !mod_part
       endif !ibf
-
+      write(*,*) 'jd02'
       if(irec1<1.or.irec1>nrec) stop 'record out of bound'
       if (newio==0) then
         iret=nf90_get_var(ncid,ielev_id,real_ar(1,1:np),(/1,irec1/),(/np,1/))
@@ -765,7 +765,7 @@
           vf2(:,:)=transpose(real_ar(1:nvrt,1:np))
         endif
       endif
-
+      write(*,*) 'jd03'
       irec1=irec1+ibf
 
 !...  Store info for first step
@@ -782,7 +782,7 @@
 
 !...  Compute z-cor
       call levels
-
+      write(*,*) 'jd04,np,nvrt',np,nvrt
 !...  Deal with junks
       do i=1,np
         if(idry(i)==1) then
@@ -796,15 +796,16 @@
               vf2(i,k)=0
             endif
           enddo !k
+          if (mod(i,1000) == 0) write(*,*) 'deal junks',i,'/',np
         endif 
       enddo !i
-      
+      write(*,*) 'jd05' 
 !...  Store info for first step
       if(it==iths) then  !at the very begining
         uu1=uu2; vv1=vv2; ww1=ww2
         vf1=vf2; wnx1=wnx2; wny1=wny2
       endif 
-
+      write(*,*) 'jd06'
 !...  compute hvis_e & hvis_e based on Smagorinsky Algorithm
       if(mod_part==1) then
         if(ihdf==0) then
@@ -841,13 +842,13 @@
             enddo !k
           enddo !i=1,np
         endif !ihdf
-
 !...    Store info for diffusion term in first step
         if(it==iths) then
           hf1=hf2; grdx=0.0; grdy=0.0; grdz=0.0
           dhfx=hdc; dhfy=hdc; dhfz=3.0d-4
         endif
       endif !mod_part=1
+      write(*,*) 'jd07'
 
       if(nscreen.eq.1) write(*,*)'begin ptrack...'
 
