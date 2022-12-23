@@ -27,4 +27,5 @@ To do list:
 
 5. error in fort.11 when running run16c 'Impossible dry (7):       13946           1  0.500000000000000
 
-
+6. error when running "forrtl: severe (174): SIGSEGV, segmentation fault occurred"
+A: likely because some array is called but not allocated or defined

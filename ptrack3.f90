@@ -84,8 +84,8 @@
         integer, save :: np,ne,ns,nvrt,mnei,mod_part,ibf,istiff,ivcor,kz,nsig,newio,temp_on,salt_on,diff_on,solar_on
       	real(kind=dbl_kind), save :: h0,rho0,dt,settling_velocity,timezone,swim_spd,swim_spd2
         real,save :: h_c,theta_b,theta_f,h_s !s_con1
-        integer, save :: mod_hab, mod_oyester, mod_plastic,mod_mercury,&
-       &swim   !HAB
+        integer, save :: mod_oil,mod_hab, mod_oyester, mod_plastic,mod_mercury,&
+       &swim,tss_on,bio_on,din_on   !HAB
         
 
 !...    Output handles
@@ -132,16 +132,17 @@
      &GP(:),dp_pp(:) !HAB
  
       real, allocatable :: zlcl(:),real_ar(:,:)
-      integer, allocatable :: ielpar(:),levpar(:),iabnorm(:),ist(:),inbr(:)
+      integer, allocatable :: ielpar(:),levpar(:),iabnorm(:),ist(:),inbr(:),i_rec(:)
       character(len=25), allocatable :: idp(:)
       real*8 :: vxl(4,2),vyl(4,2),vzl(4,2),vxn(4),vyn(4),vzn(4),arco(3), &
-     &dx(10),dy(10),dz(10),val(4,2),vbl(4,2),vcl(4,2),vdl(4,2),van(4),vcn(4),vdn(4),vwx(4),vwy(4)
+     &dx(10),dy(10),dz(10),val(4,2),vbl(4,2),vcl(4,2),vdl(4,2),van(4),vcn(4),vdn(4),vwx(4),vwy(4),&
+     &csl(4,2),ctl(4,2),csn(4),ctn(4),vs(4),vDIN(4),vTSS(4)
       integer :: nodel2(3),varid1,varid2,dimids(3),istat,nvtx,iret,&
      &prcount,NCID2,numparID,timeID,modtimeID,lonID,latID,depthID,fu,rc,&
      &ielev_id,iu_id,iv_id,iw_id,iwindx,iwindy,isolar_id,itemp_id,isalt_id
       character(len=200) :: file63,ncFile,ncDir,file2d,fileS,fileT,fileU,fileV,fileW,fileD
 
-      iseed=5 !Random seed used only for oil spill model 
+      iseed=5 !Random seed used only for oil spill model, for diffusion  
       rotate_angle=3.0*(pi/180.0)   !!Ekman effects, angle between wind and current directions
       drag_c=0.03 !reducing wind speed to get surface current
       T_half=86400 ! half-life [sec]
@@ -168,15 +169,18 @@
       namelist /CORE/ settling_velocity,ncDir, nscreen, mod_part,ibf,&
                       &istiff,ics,slam0,sfea0,h0,rnday,dtm,nspool,ihfskip,&
                       &ndeltp,newio,salt_on,temp_on,diff_on,solar_on
-      namelist /OIL/ ihdf,hdc,horcon,ibuoy,iwind,pbeach
-      namelist /HAB/ mod_hab,swim,timezone,swim_spd,swim_spd2
-      if (mod_hab==1) then
-        salt_on=1; temp_on=1; solar_on=1
-      endif 
+      namelist /OIL/ mod_oil,ihdf,hdc,horcon,ibuoy,iwind,pbeach
+      namelist /HAB/ mod_hab,swim,timezone,swim_spd,swim_spd2,bio_on,din_on,tss_on
       open (action='read', file='param.in', iostat=rc, newunit=fu)
       read (nml=CORE, iostat=rc, unit=fu)
       read (nml=OIL, iostat=rc, unit=fu)
       read (nml=HAB, iostat=rc, unit=fu)
+      if (mod_hab==1) then
+        salt_on=1; temp_on=1; solar_on=1
+        if (bio_on==0) then
+          tss_on=0; din_on=0
+        endif
+      endif 
 !... check the parameters    
       write(*,*) 'nc directory:',trim(ncDir)
       write(*,*) 'settling velocity (m/day):',settling_velocity 
@@ -210,6 +214,16 @@
      &vpar(nparticle),wpar(nparticle),iabnorm(nparticle),ist(nparticle),inbr(nparticle), &
      &dhfx(nparticle),dhfy(nparticle),dhfz(nparticle),grdx(nparticle),grdy(nparticle), &
      &grdz(nparticle),amas(nparticle),wndx(nparticle),wndy(nparticle),stat=istat)
+      if (salt_on==1) allocate(salt_par(nparticle),stat=istat)
+      if (temp_on==1) allocate(temp_par(nparticle),stat=istat)
+      if (solar_on==1) allocate(solar_par(nparticle),stat=istat)
+      if (mod_hab==1 .and. bio_on==1) allocate(den_hab(nparticle),C1(nparticle),C2(nparticle),&
+     &Gnet(nparticle),chla(nparticle),G(nparticle),fT(nparticle),fS(nparticle),&
+     &dhfx(nparticle),dhfy(nparticle),dhfz(nparticle),grdx(nparticle),grdy(nparticle), &
+     &grdz(nparticle),amas(nparticle),wndx(nparticle),wndy(nparticle),&
+     &DIN_par(nparticle),TSS_par(nparticle),fI(nparticle),fN(nparticle),&
+     &G_agg(nparticle),G_mor(nparticle),Res(nparticle),f_kd(nparticle),avg_I(nparticle),&
+     &fmin_INP(nparticle),Go_P(nparticle),Go_H(nparticle),Gmax(nparticle),GP(nparticle),dp_pp(nparticle),stat=istat)
       if(istat/=0) stop 'Failed to alloc (1)'
       levpar=-99 !vertical level
       iabnorm=0 !abnormal tracking exit flag
@@ -271,7 +285,7 @@
 !      amas=1.0   ! mass of particles
 
 ! ... treatment for buoyant oil particles
-      if(mod_part==1) then
+      if(mod_oil==1) then
         if(ibuoy==1) then
           !compute the rising velocity(m/s) based on Proctor et al., 1994
           gr=9.8               ! m/s^2
@@ -294,7 +308,7 @@
           stop
         endif !ibuoy
         print*, 'Rising vel=',rsl
-      endif !mod_part=1
+      endif !mod_oil=1
 
 !...  Read in header (if quads r split in binary, the hgrid read in here
 !     has different conn table from hgrid.gr3)
@@ -326,12 +340,12 @@
         if(iret/=nf90_NoErr) stop 'hvel not found'
         iret=nf90_inq_varid(ncid,'vertical_velocity',lw)
         if(iret/=nf90_NoErr) stop 'w not found'
-        if(mod_part==1) then
+        if(mod_oil==1) then
           iret=nf90_inq_varid(ncid,'wind_speed',lwind)
           if(iret/=nf90_NoErr) stop 'wind not found'
           iret=nf90_inq_varid(ncid,'diffusivity',ltdff)
           if(iret/=nf90_NoErr) stop 'diffusivity not found'
-        endif !mod_part
+        endif !mod_oil
       
         iret=nf90_inq_dimid(ncid,'nSCHISM_vgrid_layers',i)
         iret=nf90_Inquire_Dimension(ncid,i,len=nvrt)
@@ -400,12 +414,12 @@
         iret=nf90_inq_varid(ncidW,'verticalVelocity',iw_id)
         if(iret/=nf90_NoErr) stop 'verticalVelocity not found'
         
-        if(mod_part==1) then
+        if(mod_oil==1) then
           iret=nf90_inq_varid(ncid,'windSpeedX',iwindx)  !in out2d
           if(iret/=nf90_NoErr) stop 'wind speed X not found'
           iret=nf90_inq_varid(ncid,'windSpeedY',iwindy)  !in out2d
           if(iret/=nf90_NoErr) stop 'wind speed Y not found'
-        endif !mod_part
+        endif !mod_oil
       
         iret=nf90_inq_dimid(ncid,'nSCHISM_vgrid_layers',i)
         iret=nf90_Inquire_Dimension(ncid,i,len=nvrt)
@@ -447,6 +461,22 @@
         iret=nf90_get_var(ncid,varid1,kbp00) 
       endif
 
+      !-read DIN and TSS, data from external sources
+      if (mod_hab==1 .and. din_on==1) then
+        allocate(t_DIN(366),DIN_all(366,np),t_TSS(366),TSS_all(366,np))
+        open(98,file='DIN_2020.txt',status='old')
+        do i=1,366
+           read(98,*)t_DIN(i),DIN_all(i,1:np)
+        enddo   
+        close(98)
+
+        open(99,file='TSS_2020.txt',status='old')
+        do i=1,366
+          read(99,*)t_TSS(i),TSS_all(i,1:np)
+        enddo
+        close(99)
+      endif
+      
       !Leave it open as this is the 1st stack to read from
       !iret=nf90_close(ncid)
 
@@ -709,8 +739,8 @@
       upar=0; vpar=0; wpar=0
       zpar=zpar0
       if (temp_on==1) temp_par=0
-      if (salt_on==1) salt_par=9
-      if (mod_hab==1) then
+      if (salt_on==1) salt_par=0
+      if (mod_hab==1 .and. bio_on==1) then
         C1=1.e7;  ! cell/m3
         Gnet=0; G=0; fT=0;fS=0  !-jx, C1 is initial cell
         G_mor=0; Res=0; G_agg=0                       !density
@@ -788,13 +818,13 @@
         vv2(:,:)=transpose(real_ar(1:nvrt,1:np))
         iret=nf90_get_var(ncid,lw,real_ar(1:nvrt,1:np),(/1,1,irec1/),(/nvrt,np,1/))
         ww2(:,:)=transpose(real_ar(1:nvrt,1:np))
-        if(mod_part==1) then
+        if(mod_oil==1) then
           iret=nf90_get_var(ncid,lwind,real_ar(1:2,1:np),(/1,1,irec1/),(/2,np,1/))
           wnx2(:)=real_ar(1,1:np)
           wny2(:)=real_ar(2,1:np)
           iret=nf90_get_var(ncid,ltdff,real_ar(1:nvrt,1:np),(/1,1,irec1/),(/nvrt,np,1/))
           vf2(:,:)=transpose(real_ar(1:nvrt,1:np))
-        endif !mod_part
+        endif !mod_oil
       else !newio==1 -jd
         iret=nf90_get_var(ncid,ielev_id,real_ar(1,1:np),(/1,irec1/),(/np,1/))
         eta2=real_ar(1,1:np)
@@ -819,14 +849,15 @@
           if(iret/=nf90_NoErr) stop 'salinity not read'
           salt2=transpose(real_ar(1:nvrt,1:np))
         endif
-
-        if(mod_part==1) then
+        if (diff_on==1) then
+          iret=nf90_get_var(ncidD,idiff_id,real_ar(1:nvrt,1:np),(/1,1,irec1/),(/nvrt,np,1/))
+          vf2(:,:)=transpose(real_ar(1:nvrt,1:np))
+        endif
+        if(mod_oil==1) then
           iret=nf90_get_var(ncid,iwindx,real_ar(1,1:np),(/1,irec1/),(/np,1/))
           wnx2=real_ar(1,1:np)
           iret=nf90_get_var(ncid,iwindy,real_ar(1,1:np),(/1,irec1/),(/np,1/))
           wny2=real_ar(1,1:np)
-          iret=nf90_get_var(ncidD,idiff_id,real_ar(1:nvrt,1:np),(/1,1,irec1/),(/nvrt,np,1/))
-          vf2(:,:)=transpose(real_ar(1:nvrt,1:np))
         endif
       endif
       irec1=irec1+ibf
@@ -924,7 +955,7 @@
         eta_p=0; dp_p=0 !for output before moving
         if((ibf==1.and.time<=st_p(i)).or.(ibf==-1.and.time>st_p(i)-dt)) go to 449 !output directly
 
-        if(mod_part==1) then
+        if(mod_oil==1) then
           if(ist(i)==0) ist(i)=1 !particle activated
           if(ist(i)==-2) then
             if(inbr(i)>0) then; if(idry_e(inbr(i))==0) then
@@ -932,7 +963,7 @@
             endif; endif
           endif
           if(ist(i)/=1) go to 449
-        endif !mod_part
+        endif !mod_oil
 
         pt=dt !tracking time step
 !...    Initialize starting level 
@@ -979,10 +1010,10 @@
               if (temp_on==1) temp_par(i)=temp_par(i)+temp2(nd,jlev)*arco(j)
               if (salt_on==1) salt_par(i)=salt_par(i)+salt2(nd,jlev)*arco(j)
               if (solar_on==1) solar_par(i)=solar_par(i)+solar2(nd)*arco(j) 
-              if(mod_part==1) then
+              if(mod_oil==1) then
                 wndx(i)=wndx(i)+wnx2(nd)*arco(j)
                 wndy(i)=wndy(i)+wny2(nd)*arco(j)
-              endif !mod_part
+              endif !mod_oil
             enddo !j
 
           endif !wet
@@ -1015,8 +1046,12 @@
           else
             trat=real(idt-1)/ndeltp
           endif
-          xdif=0; ydif=0; zdif=0
-          if(mod_part==1) then !oil spill
+          xadv=ibf*dtb*upar(i)
+          yadv=ibf*dtb*vpar(i)
+          zadv=ibf*dtb*wpar(i)
+          rnds=0 !not used !c to be checked whether it is needed
+
+          if(mod_oil==1) then !oil spill
 ! ...       wind rotation & apply to surface current
             dir = atan2(wndy(i),wndx(i))
             speed = sqrt(wndx(i)**2+wndy(i)**2)
@@ -1030,54 +1065,13 @@
             if(z0<-0.1) then  ! sub_surface particles are not influenced by wind
               cur_x=0; cur_y=0
             endif 
-
-! ...      generating random number
-            do k=1,3
-              dx(k)=ran1(iseed)
-              dy(k)=ran2(iseed)
-              dz(k)=ran3(iseed)
-            enddo
-
-            rndx=dx(1)
-            rndy=dx(2)
-            rndz=dx(3)
-            xadv=(upar(i)+cur_x+grdx(i))*dtb
-            yadv=(vpar(i)+cur_y+grdy(i))*dtb
-            zadv=(wpar(i)+rsl+grdz(i))*dtb        
-            xdif=(2*rndx-1)*sqrt(6*dhfx(i)*dtb) !random walk
-            ydif=(2*rndy-1)*sqrt(6*dhfy(i)*dtb)
-            zdif=(2*rndz-1)*sqrt(6*dhfz(i)*dtb)   
-!          xadv=0;yadv=0;zadv=0;zdif=0
-!          if(i.eq.1) then
-!            iel=nnel
-!            k=jlev
-!            nd1=elnode(1,iel)
-!            nd2=elnode(2,iel)
-!            nd3=elnode(3,iel)
-!            print*,iel,idry_e(iel),hvis_e(iel,k)
-!            print*,hvis_p(nd1,k),hvis_p(nd2,k),hvis_p(nd3,k)
-!            print*,grdx(i),grdy(i),grdz(i)
-!            print*,dhfx(i),dhfy(i),dhfz(i)
-!            pause  
-!          endif
-
-            xt=x0+xadv+xdif
-            yt=y0+yadv+ydif
-            zt=z0+zadv+zdif    
-
-            !rnds - random number used for stranding (oil spill only)
-            rnds=dy(1)          
-          else !not oil spill
-            xadv=ibf*dtb*upar(i)
-            yadv=ibf*dtb*vpar(i)
-            zadv=ibf*dtb*wpar(i)
-            rnds=0 !not used !c to be checked whether it is needed
+            !addition to the original advection
+            xadv=xadv+ibf*dtb*(cur_x+grdx(i))
+            yadv=yadv+ibf*dtb*(cur_y+grdy(i))
+            zadv=zadv+ibf*dtb*(rsl+grdz(i))
           endif !mod_part
           if (settling_velocity/=0) zadv=zadv-ibf*dtb*settling_velocity
           if (swim==1 .and. mod_hab==1) then
-            !timezone=-6
-            !swim_spd=30./86400.0
-            !swim_spd2=-70.0/86400.0
             t_swm=time+(idt-1)*dtb
             hour=DMOD(t_swm+timezone*3600,86400.)/3600.
             if(hour>=6 .and. hour<=18) then !swim upward during 6-18h  
@@ -1088,7 +1082,9 @@
               if (i==1 .and. idt==1) write(*,*) hour,'swim downward'
             endif
           endif 
-          if (diff_on==1) then
+          xdif=0; ydif=0; zdif=0
+          if (diff_on==1) then  !!random walk
+            ! generating random number
             do k=1,3
               dx(k)=ran1(iseed)
               dy(k)=ran2(iseed)
@@ -1100,6 +1096,7 @@
             xdif=(2*rndx-1)*sqrt(6*dhfx(i)*dtb) !random walk
             ydif=(2*rndy-1)*sqrt(6*dhfy(i)*dtb)
             zdif=(2*rndz-1)*sqrt(6*dhfz(i)*dtb)
+            !rnds - random number used for stranding (oil spill only)
             rnds=dy(1) !c to be checked, not sure whether this is needed
           endif
           xt=x0+xadv+xdif
@@ -1108,26 +1105,30 @@
 
           call quicksearch(1,idt,i,nnel0,jlev0,dtb,x0,y0,z0,xt,yt,zt,nnel,jlev, &
      &nodel2,arco,zrat,nfl,eta_p,dp_p,ztmp,kbpl,ist(i),inbr(i),rnds,pbeach)
-
+          if (din_on==1) trat_DIN=(t_swm-t_DIN(i_rec(idt)))/(t_DIN(i_rec(idt)+1)-t_DIN(i_rec(idt)))
 !	  nnel not dry
 !	  Interpolate in time
           do j=1,i34(nnel)
             nd=elnode(j,nnel)
-            if(mod_part==1) then
+            if(mod_oil==1) then
               vwx(j)=wnx1(nd)*(1-trat)+wnx2(nd)*trat  ! windx
               vwy(j)=wny1(nd)*(1-trat)+wny2(nd)*trat  ! windy
-            endif !mod_part
+            endif !mod_oil
+            if (solar_on==1) vs(j) =solar1(nd)*(1-trat)+solar2(nd)*trat
+            if (din_on==1)  vDIN(j)=DIN_all(i_rec(idt),nd)*(1-trat_DIN)+DIN_all(i_rec(idt)+1,nd)*trat_DIN
+            if (tss_on==1)  vTSS(j)=TSS_all(i_rec(idt),nd)*(1-trat_DIN)+TSS_all(i_rec(idt)+1,nd)*trat_DIN
+
             do l=1,2
               lev=jlev+l-2
               vxl(j,l)=uu1(nd,lev)*(1-trat)+uu2(nd,lev)*trat
               vyl(j,l)=vv1(nd,lev)*(1-trat)+vv2(nd,lev)*trat
               vzl(j,l)=ww1(nd,lev)*(1-trat)+ww2(nd,lev)*trat
-              if(mod_part==1) then
+              if(diff_on==1) then
                 val(j,l)=hf1(nd,lev)*(1-trat)+hf2(nd,lev)*trat !viscosity [m^2/s]
                 vbl(j,l)=vf1(nd,lev)*(1-trat)+vf2(nd,lev)*trat !diffusivity
                 vcl(j,l)=hf1(nd,lev)*(1-trat/2)+hf2(nd,lev)*trat/2 !viscosity @ half-step
                 vdl(j,l)=vf1(nd,lev)*(1-trat/2)+vf2(nd,lev)*trat/2 !diffusivity @ half-step
-              endif !mod_part
+              endif !diffusion
             enddo !l
           enddo !j
 
@@ -1136,32 +1137,46 @@
             vxn(j)=vxl(j,2)*(1-zrat)+vxl(j,1)*zrat
             vyn(j)=vyl(j,2)*(1-zrat)+vyl(j,1)*zrat
             vzn(j)=vzl(j,2)*(1-zrat)+vzl(j,1)*zrat
-            if(mod_part==1) then
+            if (temp_on==1) ctn(j)=ctl(j,2)*(1-zrat)+ctl(j,1)*zrat !-jx
+            if (salt_on==1) csn(j)=csl(j,2)*(1-zrat)+csl(j,1)*zrat !-jx
+            if(diff_on==1) then
               van(j)=val(j,2)*(1-zrat)+val(j,1)*zrat !viscosity
               vcn(j)=vcl(j,2)*(1-zrat)+vcl(j,1)*zrat !viscosity @ half-step
               vdn(j)=vdl(j,2)*(1-zrat)+vdl(j,1)*zrat !diffusivity @ half-step
-            endif !mod_part
+            endif !diff_on
           enddo !j
 
 !	  Interpolate in horizontal
           upar(i)=0; vpar(i)=0; wpar(i)=0
           wndx(i)=0;wndy(i)=0; dhfx(i)=0; dhfz(i)=0
+          if (temp_on==1) temp_par(i)=0
+          if (salt_on==1) salt_par(i)=0
+          if (solar_on==1) solar_par(i)=0
+          if (mod_hab==1 .and. din_on==1) DIN_par(i)=0
+          if (mod_hab==1 .and. tss_on==1) TSS_par(i)=0
           do j=1,3 !1st tri for quads
             id=nodel2(j)
             upar(i)=upar(i)+vxn(id)*arco(j)
             vpar(i)=vpar(i)+vyn(id)*arco(j)
             wpar(i)=wpar(i)+vzn(id)*arco(j)
-            if(mod_part==1) then
+            if (temp_on==1) temp_par(i)=temp_par(i)+ctn(id)*arco(j)  !-jx
+            if (salt_on==1) salt_par(i)=salt_par(i)+csn(id)*arco(j)
+            if (solar_on==1) solar_par(i)=solar_par(i)+vs(id)*arco(j) ! solar radiation
+            if (mod_hab==1 .and. din_on==1) DIN_par(i)=DIN_par(i)+vDIN(id)*arco(j)
+            if (mod_hab==1 .and. tss_on==1) TSS_par(i)=TSS_par(i)+vTSS(id)*arco(j)
+            if(mod_oil==1) then
               wndx(i)=wndx(i)+vwx(id)*arco(j)  !windx
               wndy(i)=wndy(i)+vwy(id)*arco(j)  !windy
+            endif
+            if (diff_on==1) then
               dhfx(i)=dhfx(i)+vcn(id)*arco(j)  !viscosity @half-step
               dhfz(i)=dhfz(i)+vdn(id)*arco(j)  !diffusivity @half-step
-            endif !mod_part
+            endif !diff_on
           enddo !j
           dhfy(i)=dhfx(i)
 
 !         Compute the vertical gradient of diffusivity
-          if(mod_part==1) then
+          if(diff_on==1) then
             az=0
             do j=1,3
               id=nodel2(j)
@@ -1176,7 +1191,7 @@
             !Gradient of viscosity
             grdx(i)=dot_product(van(nodel2(1:3)),dldxy(1:3,1,nnel))
             grdy(i)=dot_product(van(nodel2(1:3)),dldxy(1:3,2,nnel))
-          endif !mod_part
+          endif !diff_on
 
           if(nfl==1) then
             iabnorm(i)=1
@@ -1188,6 +1203,62 @@
           z0=zt
           nnel0=nnel
           jlev0=jlev
+!...      HAB biomass calculation based on Qin 2021 and Xiong's implementation
+          if (mod_hab==1 .and. bio_on==1) then
+            Topt=25.1; ! Topt=27.0
+            Sopt=34. 
+            Gopt_P=1.06/86400.
+            Gopt_H=0.62/86400.
+            half_I = 30. ! umol/m2/s; irradiance half-satuartion coefficience
+            half_DIN=0.028
+            if(temp_par(i)<=Topt) fT(i)=exp(-0.0230*(temp_par(i)-Topt)**2)
+            if(temp_par(i)>Topt)  fT(i)=exp(-0.0277*(temp_par(i)-Topt)**2)
+            if(salt_par(i)<=Sopt) fS(i)=exp(-0.0024*(salt_par(i)-Sopt)**2)
+            if(salt_par(i)>Sopt)  fS(i)=exp(-0.0222*(salt_par(i)-Sopt)**2)
+            
+            ! light limitation
+            ! f_kd = 2.1 ! irraiance extinction coefficient
+            ! f_kd = 1.1+0.017*C1(i)*1.69e-8
+            if (tss_on==0) TSS_par(i)=0
+            f_kd(i) = 0.1+0.06*TSS_par(i)+0.017*C1(i)*1.69e-8
+            avg_I(i) = solar_par(i)*4.6*exp(f_kd(i)*zt)  !1 W/m2=4.6 umol/m2/s; irradiance at particle location,zt<0 
+            fI(i)=avg_I(i)/(avg_I(i)+half_I); 
+            if(fI(i)<small1) fI(i)=0.  
+            fN(i)=1.;  !nutrient limitation
+            if (din_on==1) fN(i)=DIN_par(i)/(DIN_par(i)+half_DIN)
+            if(fN(i)<=0.2) fN(i)=0.2
+            fOM12=0.7
+   
+            fmin_INP(i)=min(fI(i),fN(i));
+            Go_P(i)=Gopt_P*fT(i)*fS(i)*fmin_INP(i)  ! photoautotrophic growth
+            dp_pp(i)=fT(i)*fS(i)*fmin_INP(i)
+            Go_H(i)=Gopt_H*fT(i)*fS(i)*fOM12    ! heterotrophic growth
+            Gmax(i)=Gopt_P*fT(i)*fS(i)
+       
+            t_grow=time+(idt-1)*dtb  
+            day_ini=DMOD(t_grow,86400.)/3600.
+            if(day_ini>=6.and.day_ini<=18.) then !daytime
+               G(i)=min(Go_P(i)+Go_H(i),Gmax(i));! GP=Go_P
+              GP(i)=Go_P(i)
+            else  !night
+               G(i)=Go_H(i); ! GP=0.
+               GP(i)=0;
+            endif
+
+            ! respiration
+            R0=0.025/86400; theta_R=1.07; fP=0.16
+            Res(i)=R0*theta_R**(temp_par(i)-20.)+fP*GP(i)
+              
+            cap = 200./1.69e-8 ! carry capacity 250 mg Chla/m^3 to cell/m^3 -Hofmann
+            if(t_grow>=st_p(i)) then 
+              G_agg(i) = C1(i)*1.69e-8*0.1/86400.  ! loss rate due to aggreagation(Fennel 2005)
+              G_mor(i) = 0.05/86400 + 0.01/86400.*0.5*(1+tanh((temp_par(i)-29.)/0.15))  !mortality
+              Gnet(i)=G(i)-G_agg(i)-G_mor(i) 
+              C2(i)=C1(i)+Gnet(i)*C1(i)*dtb 
+              if(C2(i)<=0) C2(i)=0
+              C1(i)=C2(i)
+            endif 
+          endif !bio_on==1
         enddo !idt=1,ndeltp
 
         xpar(i)=xt
@@ -1195,10 +1266,13 @@
         zpar(i)=zt
         ielpar(i)=nnel
         levpar(i)=jlev
-
+        if (mod_hab==1 .and. bio_on==1) then 
+          den_hab(i)=C2(i) !-jx
+          chla(i)=den_hab(i)*1.69e-8 !cell/m^3 to mg chla/m3
+        endif
 449     continue
 
-        if(mod_part==1) then
+        if(mod_oil==1) then
           !Calculate remaining mass
           if(ist(i)/=0) then
             y0=1 ! initial mass
@@ -1206,7 +1280,7 @@
             arg=-log(2.0)/T_half*(time-st_p(i))
             amas(i)=yc+(y0-yc)*exp(max(arg,-20.d0))
           endif
-        endif !mod_part        
+        endif !mod_oil      
 
         if(ics==2) then
           call cppinverse(xout, yout, xpar(i), ypar(i), slam0, sfea0)
@@ -1248,7 +1322,9 @@
 !...  Store info for next step
       uu1=uu2; vv1=vv2; ww1=ww2; eta1=eta2
       hf1=hf2; vf1=vf2; wnx1=wnx2; wny1=wny2
-
+      if (temp_on==1) temp1=temp2
+      if (salt_on==1) salt1=salt2
+      if (solar_on==1) solar1=solar2
       if(nscreen.eq.1) write(*,*)'Time (days)=',time/86400
 
 !--------------------------------------------------------------------------
@@ -1718,7 +1794,7 @@
         endif
 
         !Oil spill
-        if(mod_part==1) then
+        if(mod_oil==1) then
           !Set status flag
           if(ic3(nel_j,nel)==0) then
             ltmp1=isbnd(md1)>0.or.isbnd(md2)>0 !open bnd
@@ -1748,7 +1824,7 @@
               exit loop4
             endif
           endif !ic3
-        endif !mod_part
+        endif !mod_oil
 
 !       Reflect off
 !        eps=1.e-2
@@ -1997,7 +2073,7 @@
 
         ae=abs(aa-ar(m))/ar(m)
         if(ae<=ae_min) then
-          ae=ae_min
+          ae_min=ae
           nodel(1:3)=list(1:3)
           arco(1:3)=swild(m,1:3)/ar(m)
           arco(1)=max(0.d0,min(1.d0,arco(1)))

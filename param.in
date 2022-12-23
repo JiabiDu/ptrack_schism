@@ -11,18 +11,19 @@ ics=2                 !1 to use hgrid.gr3, 2 to use hgrid.ll
 slam0=-76             !
 sfea0=37              !
 h0=0.05               !min depth; when eta+dp<h0, stop
-rnday=10.0            !running time in days, not the duration after particle release
+rnday=2.0            !running time in days, not the duration after particle release
 dtm=150.              !hydro model time step, must be same as in param.nml in hydro model
 nspool=24             !hydro model output frequency, must be same as in param.nml in hydro model
 ihfskip=8640          !time steps for each hydro model output stack, see param.nml in hydro model
 ndeltp=30             !model sub time step
-temp_on=0             !get the temperature for the particle
-salt_on=0             !get the salinity for the particle
+temp_on=1             !get the temperature for the particle; automatically on if HAB is turned on
+salt_on=1             !get the salinity for the particle; automatically on if HAB is turned on
 diff_on=0             !get diffusivity and use it for random walk
-solar_on=0            !get solar radiation
+solar_on=1            !get solar radiation; automatically on if HAB is turned on
 /
 
 &OIL
+mod_oil=0             !turn on oil spill module 
 ihdf=0                !turn on Smagorinsky algorithm - off(0), on(1)
 hdc=0    
 horcon=0
@@ -37,3 +38,6 @@ swim=1                !swimming, vertical migration, diurnal, upward during hr 6
 timezone=-6           !timezone used to ajust the model GMT time to local time
 swim_spd=30           !m/day, downward speed
 swim_spd2=-70         !m/day, upward speed
+bio_on=0              !calculate the biomass
+tss_on=0              !read TSS from external source; only used when bio_on is 1; can be turned off, then no impact from tss on light condition
+din_on=0              !read DIN from external source, only used when bio_on is 1; can be turned off, then limiting function from DIN is 1 
