@@ -138,7 +138,7 @@
      &dx(10),dy(10),dz(10),val(4,2),vbl(4,2),vcl(4,2),vdl(4,2),van(4),vcn(4),vdn(4),vwx(4),vwy(4),&
      &csl(4,2),ctl(4,2),csn(4),ctn(4),vs(4),vDIN(4),vTSS(4)
       integer :: nodel2(3),varid1,varid2,dimids(3),istat,nvtx,iret,&
-     &prcount,NCID2,numparID,timeID,modtimeID,lonID,latID,depthID,fu,rc,&
+     &prcount,NCID2,numparID,timeID,modtimeID,lonID,latID,depthID,bioID,fu,rc,&
      &ielev_id,iu_id,iv_id,iw_id,iwindx,iwindy,isolar_id,itemp_id,isalt_id
       character(len=200) :: file63,ncFile,ncDir,file2d,fileS,fileT,fileU,fileV,fileW,fileD
 
@@ -258,15 +258,18 @@
       status=NF90_DEF_DIM(NCID2,'numpar',nparticle,numparID)
       status=NF90_DEF_DIM(NCID2,'time',NF90_UNLIMITED,timeID)
       !define var
-      status=NF90_DEF_VAR(NCID2,'model_time',NF90_DOUBLE,(/timeID/),modtimeID)
+      status=NF90_DEF_VAR(NCID2,'time',NF90_DOUBLE,(/timeID/),modtimeID)
       status=NF90_DEF_VAR(NCID2,'lon',NF90_FLOAT,(/numparID,timeID/),lonID)
       status=NF90_DEF_VAR(NCID2,'lat',NF90_FLOAT,(/numparID,timeID/),latID)
       status=NF90_DEF_VAR(NCID2,'depth',NF90_FLOAT,(/numparID,timeID/),depthID)
+      if(mod_hab==1 .and. bio_on==1) status=NF90_DEF_VAR(NCID2,'biomass',NF90_FLOAT,(/numparID,timeID/),bioID)
+      
       !put attributes to each variable
       status=NF90_PUT_ATT(NCID2,depthID,"long_name","depth")
       status=NF90_PUT_ATT(NCID2,latID,"long_name","latitude")
       status=NF90_PUT_ATT(NCID2,lonID,"long_name","longitude")
       status=NF90_PUT_ATT(NCID2,modtimeID,"long_name","Model time")
+      if(mod_hab==1 .and. bio_on==1) status=NF90_PUT_ATT(NCID2,bioID,"long_name","biomass")
       status=NF90_ENDDEF(NCID2)
       status=NF90_CLOSE(NCID2)
       write(*,*) 'Created out.nc'
@@ -1309,14 +1312,18 @@
 !...  write into netcdf jdu
       prcount = prcount+1
       status=NF90_OPEN(TRIM(ncFile), NF90_WRITE, NCID2)
-      STATUS=NF90_INQ_VARID(NCID2, "model_time", modtimeID)
+      STATUS=NF90_INQ_VARID(NCID2, "time", modtimeID)
       STATUS=NF90_INQ_VARID(NCID2, "lon", lonID)
       STATUS=NF90_INQ_VARID(NCID2, "lat", latID)
       STATUS=NF90_INQ_VARID(NCID2, "depth", depthID)
+      STATUS=NF90_INQ_VARID(NCID2, "biomass", bioID)
       STATUS=NF90_PUT_VAR(NCID2, modtimeID, DBLE(time), start=(/ prcount /))
       status=NF90_PUT_VAR(NCID2, lonID, xpar2,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
       status=NF90_PUT_VAR(NCID2, latID, ypar2,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
       status=NF90_PUT_VAR(NCID2, depthID, zpar,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+      if (mod_hab==1 .and. bio_on==1) then
+        status=NF90_PUT_VAR(NCID2, bioID, den_hab,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+      endif
       STATUS=NF_CLOSE(NCID2)
       write(*,*) 'write into ',TRIM(ncFile)
 
