@@ -18,7 +18,7 @@ ihfskip=8640          !time steps for each hydro model output stack, see param.n
 ndeltp=30             !model sub time step
 temp_on=1             !get the temperature for the particle; automatically on if HAB is turned on
 salt_on=1             !get the salinity for the particle; automatically on if HAB is turned on
-diff_on=0             !get diffusivity and use it for random walk
+diff_on=1             !get diffusivity and use it for random walk
 solar_on=1            !get solar radiation; automatically on if HAB is turned on
 /
 
@@ -33,7 +33,7 @@ pbeach=50             !set percentage of stranding on shore
 /
 
 &HAB
-mod_hab=1             !turn on HAB module, automatically turn on salt, temp, solar
+mod_hab=1             !turn on HAB module, automatically turn on salt, temp, solar; diffusion is optional
 swim=1                !swimming, vertical migration, diurnal, upward during hr 6-18
 timezone=-6           !timezone used to ajust the model GMT time to local time
 swim_spd=30           !m/day, downward speed

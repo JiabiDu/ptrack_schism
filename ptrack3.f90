@@ -1084,6 +1084,7 @@
           endif 
           xdif=0; ydif=0; zdif=0
           if (diff_on==1) then  !!random walk
+            if (i==1 .and. idt==1) write(*,*) 'calculate diffusion for random walk'
             ! generating random number
             do k=1,3
               dx(k)=ran1(iseed)
