@@ -38,6 +38,6 @@ swim=1                !swimming, vertical migration, diurnal, upward during hr 6
 timezone=-6           !timezone used to ajust the model GMT time to local time
 swim_spd=30           !m/day, downward speed
 swim_spd2=-70         !m/day, upward speed
-bio_on=0              !calculate the biomass
+bio_on=1              !calculate the biomass
 tss_on=0              !read TSS from external source; only used when bio_on is 1; can be turned off, then no impact from tss on light condition
 din_on=0              !read DIN from external source, only used when bio_on is 1; can be turned off, then limiting function from DIN is 1 

@@ -29,3 +29,6 @@ To do list:
 
 6. error when running "forrtl: severe (174): SIGSEGV, segmentation fault occurred"
 A: likely because some array is called but not allocated or defined
+
+7. error "Failed to alloc"
+A: either the varialbes are not defined or has been allocated already

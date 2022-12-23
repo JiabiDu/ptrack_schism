@@ -126,7 +126,7 @@
       real*8, allocatable :: xpar(:),ypar(:),zpar(:),st_p(:),upar(:),vpar(:),wpar(:),xpar2(:),ypar2(:),&
      &ztmp(:),ztmp2(:),dhfx(:),dhfy(:),dhfz(:),grdx(:),grdy(:),grdz(:),amas(:),wndx(:),wndy(:),timeout(:),&
      &temp_par(:),salt_par(:),solar_par(:) !HAB
-      real*16, allocatable :: den_hab(:),chla(:),Gnet(:),C1(:),C2(:),&
+      real*8, allocatable :: den_hab(:),chla(:),Gnet(:),C1(:),C2(:),&
      &G(:),fT(:),fS(:),t_DIN(:),DIN_all(:,:),t_TSS(:),TSS_all(:,:),DIN_par(:),TSS_par(:),&
      &fI(:),fN(:),Res(:),G_agg(:),G_mor(:),f_kd(:),avg_I(:),fmin_INP(:),Go_P(:),Go_H(:),Gmax(:),&
      &GP(:),dp_pp(:) !HAB
@@ -214,17 +214,16 @@
      &vpar(nparticle),wpar(nparticle),iabnorm(nparticle),ist(nparticle),inbr(nparticle), &
      &dhfx(nparticle),dhfy(nparticle),dhfz(nparticle),grdx(nparticle),grdy(nparticle), &
      &grdz(nparticle),amas(nparticle),wndx(nparticle),wndy(nparticle),stat=istat)
+      if(istat/=0) stop 'Failed to alloc (1)'
       if (salt_on==1) allocate(salt_par(nparticle),stat=istat)
       if (temp_on==1) allocate(temp_par(nparticle),stat=istat)
       if (solar_on==1) allocate(solar_par(nparticle),stat=istat)
       if (mod_hab==1 .and. bio_on==1) allocate(den_hab(nparticle),C1(nparticle),C2(nparticle),&
      &Gnet(nparticle),chla(nparticle),G(nparticle),fT(nparticle),fS(nparticle),&
-     &dhfx(nparticle),dhfy(nparticle),dhfz(nparticle),grdx(nparticle),grdy(nparticle), &
-     &grdz(nparticle),amas(nparticle),wndx(nparticle),wndy(nparticle),&
      &DIN_par(nparticle),TSS_par(nparticle),fI(nparticle),fN(nparticle),&
      &G_agg(nparticle),G_mor(nparticle),Res(nparticle),f_kd(nparticle),avg_I(nparticle),&
      &fmin_INP(nparticle),Go_P(nparticle),Go_H(nparticle),Gmax(nparticle),GP(nparticle),dp_pp(nparticle),stat=istat)
-      if(istat/=0) stop 'Failed to alloc (1)'
+      if(istat/=0) stop 'Failed to alloc (2)'
       levpar=-99 !vertical level
       iabnorm=0 !abnormal tracking exit flag
 
@@ -1206,6 +1205,7 @@
           jlev0=jlev
 !...      HAB biomass calculation based on Qin 2021 and Xiong's implementation
           if (mod_hab==1 .and. bio_on==1) then
+            if (i==1 .and. idt==1) write(*,*) 'calculate HAB biomass'
             Topt=25.1; ! Topt=27.0
             Sopt=34. 
             Gopt_P=1.06/86400.
