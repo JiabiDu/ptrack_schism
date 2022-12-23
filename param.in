@@ -1,20 +1,25 @@
 &CORE
 settling_velocity=0 !settling velocity, m/day
-ncDir='/scratch/user/emilyjane1215/galveston/t92/outnc/'  !nc output directory
-newio=0               !1 for new IO; 0 for old IO
+!ncDir='/scratch/user/emilyjane1215/galveston/t92/outnc/'  !nc output directory
+ncDir='/sciclone/scr10/jiabi/CB/run06d/outputs/'    !have to end with /
+newio=1               !1 for new IO; 0 for old IO
 nscreen=1             !1 for screen output
 mod_part=0            !(0: passive; 1: oil spill)
 ibf=1                 !(1: forward; -1: backward)
 istiff=0              !(fix distance from f.s[1] or not[0])
 ics=2                 !1 to use hgrid.gr3, 2 to use hgrid.ll
-slam0=-94             !
-sfea0=29              !
-h0=0.5                !min depth
+slam0=-76             !
+sfea0=37              !
+h0=0.05               !min depth; when eta+dp<h0, stop
 rnday=10.0            !running time in days, not the duration after particle release
-dtm=120.              !hydro model time step, must be same as in param.nml in hydro model
-nspool=60             !hydro model output frequency, must be same as in param.nml in hydro model
-ihfskip=720           !time steps for each hydro model output stack, see param.nml in hydro model
-ndeltp=40             !model sub time step
+dtm=150.              !hydro model time step, must be same as in param.nml in hydro model
+nspool=24             !hydro model output frequency, must be same as in param.nml in hydro model
+ihfskip=8640          !time steps for each hydro model output stack, see param.nml in hydro model
+ndeltp=30             !model sub time step
+temp_on=0             !get the temperature for the particle
+salt_on=0             !get the salinity for the particle
+diff_on=0             !get diffusivity and use it for random walk
+solar_on=0            !get solar radiation
 /
 
 &OIL
@@ -25,3 +30,10 @@ ibuoy=0               !turn buoyancy of particle  - off(0), on(1)
 iwind=0               !turn wind effect - off(0), on(1)
 pbeach=50             !set percentage of stranding on shore
 /
+
+&HAB
+mod_hab=1             !turn on HAB module, automatically turn on salt, temp, solar
+swim=1                !swimming, vertical migration, diurnal, upward during hr 6-18
+timezone=-6           !timezone used to ajust the model GMT time to local time
+swim_spd=30           !m/day, downward speed
+swim_spd2=-70         !m/day, upward speed
