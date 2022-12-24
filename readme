@@ -1,9 +1,7 @@
 To do list:
--- add variable: status, dob, age, life (1000 at the beginning)
+-- add diagnostic output for HAB.
 -- add option to settling after certain of age, add module for larvae
 -- add mortality as a function of salinity and temperature for oyster larvae
--- add random warlk, propotional to eddy diffusivity
--- add new IO
 -- add module microplastic, oyster, call the calculation if the module is on, within the ptrack3.f90, 
 -- add resuspension: 
     1. reading bottom shear stress; 

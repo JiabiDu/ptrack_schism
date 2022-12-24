@@ -141,7 +141,7 @@
      &prcount,NCID2,numparID,timeID,modtimeID,lonID,latID,depthID,bioID,fu,rc,&
      &ielev_id,iu_id,iv_id,iw_id,iwindx,iwindy,isolar_id,itemp_id,isalt_id
       character(len=200) :: file63,ncFile,ncDir,file2d,fileS,fileT,fileU,fileV,fileW,fileD
-
+      integer :: tmpi
       iseed=5 !Random seed used only for oil spill model, for diffusion  
       rotate_angle=3.0*(pi/180.0)   !!Ekman effects, angle between wind and current directions
       drag_c=0.03 !reducing wind speed to get surface current
@@ -181,6 +181,7 @@
           tss_on=0; din_on=0
         endif
       endif 
+      allocate(i_rec(ndeltp)) !used for DIN reading
 !... check the parameters    
       write(*,*) 'nc directory:',trim(ncDir)
       write(*,*) 'settling velocity (m/day):',settling_velocity 
@@ -465,15 +466,16 @@
 
       !-read DIN and TSS, data from external sources
       if (mod_hab==1 .and. din_on==1) then
-        allocate(t_DIN(366),DIN_all(366,np),t_TSS(366),TSS_all(366,np))
-        open(98,file='DIN_2020.txt',status='old')
-        do i=1,366
+        open(98,file='DIN.txt',status='old')
+        read(98,*) tmpi
+        allocate(t_DIN(tmpi),DIN_all(tmpi,np),t_TSS(tmpi),TSS_all(tmpi,np))
+        do i=1,tmpi
            read(98,*)t_DIN(i),DIN_all(i,1:np)
         enddo   
         close(98)
 
-        open(99,file='TSS_2020.txt',status='old')
-        do i=1,366
+        open(99,file='TSS.txt',status='old')
+        do i=1,tmpi
           read(99,*)t_TSS(i),TSS_all(i,1:np)
         enddo
         close(99)
@@ -947,7 +949,16 @@
           dhfx=hdc; dhfy=hdc; dhfz=3.0d-4
         endif
       endif !diff_on
-
+!   DIN irec, used to get the value for DIN based on two records
+      if (mod_hab==1 .and. din_on==1) then
+        dtb=dt/ndeltp
+        do idt=1,ndeltp
+          t_swm=time+(idt-1)*dtb
+          i_rec(idt)=minloc(abs(t_DIN-t_swm),dim=1)
+          if(t_swm<t_DIN(i_rec(idt))) i_rec(idt)=i_rec(idt)-1       
+         enddo
+         print*,'irec in DIN',i_rec(1)
+      endif
       if(nscreen.eq.1) write(*,*)'begin ptrack...'
 
 !...  Particle tracking
