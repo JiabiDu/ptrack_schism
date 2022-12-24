@@ -8,7 +8,7 @@ To do list:
     2. set particle not movable after reaching the bottom when bottom shear stress is less the crtical depositional shear stress; 
     3. add sediment age; 
     4. resuspened into the last layer when the bottom shear stress is larger than the critical erosional shear stress
-
+-- find out why some particles are skip for York HAB simulation
 
 ============================ LESSSONS =============================
 1. need to add 'return' in subroutine, otherwise error will show up

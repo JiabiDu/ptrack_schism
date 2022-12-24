@@ -139,7 +139,7 @@
      &csl(4,2),ctl(4,2),csn(4),ctn(4),vs(4),vDIN(4),vTSS(4)
       integer :: nodel2(3),varid1,varid2,dimids(3),istat,nvtx,iret,&
      &prcount,NCID2,numparID,timeID,modtimeID,lonID,latID,depthID,bioID,fu,rc,&
-     &ielev_id,iu_id,iv_id,iw_id,iwindx,iwindy,isolar_id,itemp_id,isalt_id
+     &ielev_id,iu_id,iv_id,iw_id,iwindx,iwindy,isolar_id,itemp_id,isalt_id,ncid3,dim1,dim2
       character(len=200) :: file63,ncFile,ncDir,file2d,fileS,fileT,fileU,fileV,fileW,fileD
       integer :: tmpi
       iseed=5 !Random seed used only for oil spill model, for diffusion  
@@ -465,20 +465,36 @@
       endif
 
       !-read DIN and TSS, data from external sources
-      if (mod_hab==1 .and. din_on==1) then
-        open(98,file='DIN.txt',status='old')
-        read(98,*) tmpi
-        allocate(t_DIN(tmpi),DIN_all(tmpi,np),t_TSS(tmpi),TSS_all(tmpi,np))
-        do i=1,tmpi
-           read(98,*)t_DIN(i),DIN_all(i,1:np)
-        enddo   
-        close(98)
-
-        open(99,file='TSS.txt',status='old')
-        do i=1,tmpi
-          read(99,*)t_TSS(i),TSS_all(i,1:np)
-        enddo
-        close(99)
+      !if (mod_hab==1 .and. din_on==1) then
+      !  open(98,file='DIN.txt',status='old')
+      !  read(98,*) tmpi
+      !  allocate(t_DIN(tmpi),DIN_all(tmpi,np),t_TSS(tmpi),TSS_all(tmpi,np))
+      !  do i=1,tmpi
+      !     read(98,*)t_DIN(i),DIN_all(i,1:np)
+      !  enddo   
+      !  close(98)
+      ! 
+      !  open(99,file='TSS.txt',status='old')
+      !  do i=1,tmpi
+      !    read(99,*)t_TSS(i),TSS_all(i,1:np)
+      !  enddo
+      !  close(99)
+      !endif
+      if (mod_hab==1 .and. din_on==1) then 
+        iret=nf90_open('DIN.nc',OR(NF90_NETCDF4,NF90_NOWRITE),ncid3)
+        iret=nf90_inq_varid(ncid3,'DIN',varid1)
+        iret=nf90_Inquire_Variable(ncid3,varid1,dimids=dimids)
+        iret=nf90_Inquire_Dimension(ncid3,dimids(1),len=dim1)
+        iret=nf90_Inquire_Dimension(ncid3,dimids(2),len=dim2)
+        print*,'dims in DIN.nc:',dim1,dim2
+        if (dim2 /= np) stop 'The sedond dimension in DIN should be equal to node number'
+        allocate(t_DIN(dim1),DIN_all(dim1,np),t_TSS(dim1),TSS_all(dim1,np))
+        iret=nf90_get_var(ncid3,varid1,DIN_all)
+        iret=nf90_inq_varid(ncid3,'TSS',varid1)
+        iret=nf90_get_var(ncid3,varid1,TSS_all)
+        iret=nf90_inq_varid(ncid3,'time',varid1)
+        iret=nf90_get_var(ncid3,varid1,t_DIN)
+        t_TSS=t_DIN
       endif
       
       !Leave it open as this is the 1st stack to read from
