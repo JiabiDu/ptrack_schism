@@ -499,7 +499,6 @@
       
       !Leave it open as this is the 1st stack to read from
       !iret=nf90_close(ncid)
-
       !print*, 'nc dim:',nvrt,np,ne,nrec,start_time
 
       !Calc i34
@@ -777,7 +776,7 @@
       endif
       do it=iths,it2,ibf !it is total time record #
 !--------------------------------------------------------------------------
-      time=it*dt
+      time=it*dt   !dt is the model output interval
 !...  Read in elevation and vel. info
       if((ibf==1.and.it>nrec*ifile).or.(ibf==-1.and.it<=nrec*(ifile-1))) then
         !Open next stack

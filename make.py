@@ -8,7 +8,8 @@ print(cmd); os.system(cmd)
 if not os.path.exists('../ptrack3.WW'): sys.exit('no success in compiling')
 #add git tag
 tag=os.popen('git log').read().split('\n')[0].split()[1][:8]
-cmd='mv ~/ptrack_schism/ptrack3.WW ./ptrack3.WW.{}; ln -sf ptrack3.WW.{} ptrack3.WW; ./ptrack3.WW'.format(tag,tag)
+host=os.popen('echo $HOST').read().split('.')[0].upper()
+cmd=f'mv ~/ptrack_schism/ptrack3.WW ./ptrack3.WW.{host}.{tag}; ln -sf ptrack3.WW.{host}.{tag} ptrack3.WW; ./ptrack3.WW'
 print(cmd); os.system(cmd)
 
 
