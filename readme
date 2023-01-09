@@ -1,5 +1,4 @@
 To do list:
--- add diagnostic output for HAB.
 -- add option to settling after certain of age, add module for larvae
 -- add mortality as a function of salinity and temperature for oyster larvae
 -- add module microplastic, oyster, call the calculation if the module is on, within the ptrack3.f90, 
@@ -9,6 +8,7 @@ To do list:
     3. add sediment age; 
     4. resuspened into the last layer when the bottom shear stress is larger than the critical erosional shear stress
 -- find out why some particles are skip for York HAB simulation
+-- find out why temp and salt being zero in the pt model output. 
 
 ============================ LESSSONS =============================
 1. need to add 'return' in subroutine, otherwise error will show up

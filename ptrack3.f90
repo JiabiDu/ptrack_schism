@@ -86,8 +86,8 @@
         real,save :: h_c,theta_b,theta_f,h_s !s_con1
         integer, save :: mod_oil,mod_hab, mod_oyester, mod_plastic,mod_mercury,&
        &swim,tss_on,bio_on,din_on   !HAB
+        integer, save :: iof_salt,iof_temp,iof_solar,iof_biomass,iof_din,iof_tss,iof_growth,iof_mortality,iof_agg
         
-
 !...    Output handles
         character(len=48), save :: start_time,version
         character(len=12), save :: ifile_char
@@ -138,8 +138,9 @@
      &dx(10),dy(10),dz(10),val(4,2),vbl(4,2),vcl(4,2),vdl(4,2),van(4),vcn(4),vdn(4),vwx(4),vwy(4),&
      &csl(4,2),ctl(4,2),csn(4),ctn(4),vs(4),vDIN(4),vTSS(4)
       integer :: nodel2(3),varid1,varid2,dimids(3),istat,nvtx,iret,&
+     &ielev_id,iu_id,iv_id,iw_id,iwindx,iwindy,isolar_id,itemp_id,isalt_id,ncid3,dim1,dim2,&
      &prcount,NCID2,numparID,timeID,modtimeID,lonID,latID,depthID,bioID,fu,rc,&
-     &ielev_id,iu_id,iv_id,iw_id,iwindx,iwindy,isolar_id,itemp_id,isalt_id,ncid3,dim1,dim2
+     &saltID,tempID,solarID,growthID,mortalityID,dinID,tssID,aggID
       character(len=200) :: file63,ncFile,ncDir,file2d,fileS,fileT,fileU,fileV,fileW,fileD
       integer :: tmpi
       iseed=5 !Random seed used only for oil spill model, for diffusion  
@@ -147,7 +148,7 @@
       drag_c=0.03 !reducing wind speed to get surface current
       T_half=86400 ! half-life [sec]
       remain_ratio=0.6  ! remain ratio after a long time
-      prcount=1 !count of nc output record
+      prcount=0 !count of nc output record
 
       !Cyclical index
       do k=3,4 !elem. type
@@ -171,16 +172,27 @@
                       &ndeltp,newio,salt_on,temp_on,diff_on,solar_on
       namelist /OIL/ mod_oil,ihdf,hdc,horcon,ibuoy,iwind,pbeach
       namelist /HAB/ mod_hab,swim,timezone,swim_spd,swim_spd2,bio_on,din_on,tss_on
+      namelist /PTOUT/ iof_temp,iof_salt,iof_solar,iof_tss,iof_din,iof_biomass,iof_growth,iof_mortality,iof_agg
       open (action='read', file='param.in', iostat=rc, newunit=fu)
       read (nml=CORE, iostat=rc, unit=fu)
       read (nml=OIL, iostat=rc, unit=fu)
       read (nml=HAB, iostat=rc, unit=fu)
+      read (nml=PTOUT, iostat=rc, unit=fu)
       if (mod_hab==1) then
         salt_on=1; temp_on=1; solar_on=1
         if (bio_on==0) then
           tss_on=0; din_on=0
         endif
       endif 
+      if (salt_on==0) iof_salt=0
+      if (temp_on==0) iof_temp=0
+      if (solar_on==0) iof_solar=0
+      if (bio_on==0) then
+        iof_biomass=0; iof_growth=0; iof_mortality=0; iof_agg=0
+      endif
+      if (tss_on==0) iof_tss=0
+      if (din_on==0) iof_din=0
+            
       allocate(i_rec(ndeltp)) !used for DIN reading
 !... check the parameters    
       write(*,*) 'nc directory:',trim(ncDir)
@@ -263,14 +275,47 @@
       status=NF90_DEF_VAR(NCID2,'lon',NF90_FLOAT,(/numparID,timeID/),lonID)
       status=NF90_DEF_VAR(NCID2,'lat',NF90_FLOAT,(/numparID,timeID/),latID)
       status=NF90_DEF_VAR(NCID2,'depth',NF90_FLOAT,(/numparID,timeID/),depthID)
-      if(mod_hab==1 .and. bio_on==1) status=NF90_DEF_VAR(NCID2,'biomass',NF90_FLOAT,(/numparID,timeID/),bioID)
-      
       !put attributes to each variable
       status=NF90_PUT_ATT(NCID2,depthID,"long_name","depth")
       status=NF90_PUT_ATT(NCID2,latID,"long_name","latitude")
       status=NF90_PUT_ATT(NCID2,lonID,"long_name","longitude")
       status=NF90_PUT_ATT(NCID2,modtimeID,"long_name","Model time")
-      if(mod_hab==1 .and. bio_on==1) status=NF90_PUT_ATT(NCID2,bioID,"long_name","biomass")
+      if(iof_biomass) then
+        status=NF90_DEF_VAR(NCID2,'biomass',NF90_FLOAT,(/numparID,timeID/),bioID)
+        status=NF90_PUT_ATT(NCID2,bioID,"long_name","biomass")
+      endif
+      if(iof_salt) then
+        status=NF90_DEF_VAR(NCID2,'salt',NF90_FLOAT,(/numparID,timeID/),saltID)
+        status=NF90_PUT_ATT(NCID2,saltID,"long_name","water salinity (psu)")
+      endif
+      if(iof_temp) then
+        status=NF90_DEF_VAR(NCID2,'temp',NF90_FLOAT,(/numparID,timeID/),tempID)
+        status=NF90_PUT_ATT(NCID2,tempID,"long_name","water temerature (C)")
+      endif
+      if(iof_solar) then
+        status=NF90_DEF_VAR(NCID2,'solar',NF90_FLOAT,(/numparID,timeID/),solarID)
+        status=NF90_PUT_ATT(NCID2,solarID,"long_name","solar radiation")
+      endif
+      if(iof_din) then
+        status=NF90_DEF_VAR(NCID2,'din',NF90_FLOAT,(/numparID,timeID/),dinID)
+        status=NF90_PUT_ATT(NCID2,dinID,"long_name","dissolved inorganic nitrogen")
+      endif
+      if(iof_tss) then
+        status=NF90_DEF_VAR(NCID2,'tss',NF90_FLOAT,(/numparID,timeID/),tssID)
+        status=NF90_PUT_ATT(NCID2,tssID,"long_name","total suspended sediment")
+      endif
+      if(iof_growth) then
+        status=NF90_DEF_VAR(NCID2,'growth',NF90_FLOAT,(/numparID,timeID/),growthID)
+        status=NF90_PUT_ATT(NCID2,growthID,"long_name","growth rate (per day)")
+      endif
+      if(iof_mortality) then
+        status=NF90_DEF_VAR(NCID2,'mortality',NF90_FLOAT,(/numparID,timeID/),mortalityID)
+        status=NF90_PUT_ATT(NCID2,mortalityID,"long_name","mortality induced loss rate (per day)")
+      endif
+      if(iof_agg) then
+        status=NF90_DEF_VAR(NCID2,'agg',NF90_FLOAT,(/numparID,timeID/),aggID)
+        status=NF90_PUT_ATT(NCID2,aggID,"long_name","aggregation induced loss rate (per day)")
+      endif
       status=NF90_ENDDEF(NCID2)
       status=NF90_CLOSE(NCID2)
       write(*,*) 'Created out.nc'
@@ -794,6 +839,22 @@
           iret=nf90_open(trim(adjustl(fileV)),OR(NF90_NETCDF4,NF90_NOWRITE),ncidV)
           fileW=trim(ncDir)//'verticalVelocity_'//ifile_char(1:len_char)//'.nc'
           iret=nf90_open(trim(adjustl(fileW)),OR(NF90_NETCDF4,NF90_NOWRITE),ncidW)
+          write(*,*) trim(file63); write(*,*) trim(fileU); write(*,*) trim(fileV); write(*,*) trim(fileW)
+          if (salt_on==1) then
+            fileS=trim(ncDir)//'salinity_'//ifile_char(1:len_char)//'.nc'
+            write(*,*) trim(fileS)
+            iret=nf90_open(trim(adjustl(fileS)),OR(NF90_NETCDF4,NF90_NOWRITE),ncidS)
+          endif
+          if (temp_on==1) then
+            fileT=trim(ncDir)//'temperature_'//ifile_char(1:len_char)//'.nc'
+            write(*,*) trim(fileT)
+            iret=nf90_open(trim(adjustl(fileT)),OR(NF90_NETCDF4,NF90_NOWRITE),ncidT)
+          endif
+          if (diff_on==1) then
+            fileD=trim(ncDir)//'diffusivity_'//ifile_char(1:len_char)//'.nc'
+            write(*,*) trim(fileD)
+            iret=nf90_open(trim(adjustl(fileD)),OR(NF90_NETCDF4,NF90_NOWRITE),ncidD)
+          endif
         endif
         write(*,*) 'open file ',trim(file63)
         iret=nf90_open(trim(adjustl(file63)),OR(NF90_NETCDF4,NF90_NOWRITE),ncid)
@@ -861,12 +922,12 @@
         if (temp_on==1) then
           iret=nf90_get_var(ncidT,itemp_id,real_ar(1:nvrt,1:np),(/1,1,irec1/),(/nvrt,np,1/))
           if(iret/=nf90_NoErr) stop 'temperature not read'
-          temp2=transpose(real_ar(1:nvrt,1:np))
+          temp2(:,:)=transpose(real_ar(1:nvrt,1:np))
         endif
         if (salt_on==1) then
           iret=nf90_get_var(ncidS,isalt_id,real_ar(1:nvrt,1:np),(/1,1,irec1/),(/nvrt,np,1/))
           if(iret/=nf90_NoErr) stop 'salinity not read'
-          salt2=transpose(real_ar(1:nvrt,1:np))
+          salt2(:,:)=transpose(real_ar(1:nvrt,1:np))
         endif
         if (diff_on==1) then
           iret=nf90_get_var(ncidD,idiff_id,real_ar(1:nvrt,1:np),(/1,1,irec1/),(/nvrt,np,1/))
@@ -1152,6 +1213,8 @@
               vxl(j,l)=uu1(nd,lev)*(1-trat)+uu2(nd,lev)*trat
               vyl(j,l)=vv1(nd,lev)*(1-trat)+vv2(nd,lev)*trat
               vzl(j,l)=ww1(nd,lev)*(1-trat)+ww2(nd,lev)*trat
+              if (temp_on) ctl(j,l)=temp1(nd,lev)*(1-trat)+temp2(nd,lev)*trat  !-jx
+              if (salt_on) csl(j,l)=salt1(nd,lev)*(1-trat)+salt2(nd,lev)*trat  !-jx
               if(diff_on==1) then
                 val(j,l)=hf1(nd,lev)*(1-trat)+hf2(nd,lev)*trat !viscosity [m^2/s]
                 vbl(j,l)=vf1(nd,lev)*(1-trat)+vf2(nd,lev)*trat !diffusivity
@@ -1185,6 +1248,7 @@
           if (mod_hab==1 .and. tss_on==1) TSS_par(i)=0
           do j=1,3 !1st tri for quads
             id=nodel2(j)
+            if (i==1 .and. j==1) print*,vxn(id),vyn(id),vzn(id),ctn(id),csn(id),vs(id),vDIN(id),vTSS(id)
             upar(i)=upar(i)+vxn(id)*arco(j)
             vpar(i)=vpar(i)+vyn(id)*arco(j)
             wpar(i)=wpar(i)+vzn(id)*arco(j)
@@ -1342,13 +1406,45 @@
       STATUS=NF90_INQ_VARID(NCID2, "lon", lonID)
       STATUS=NF90_INQ_VARID(NCID2, "lat", latID)
       STATUS=NF90_INQ_VARID(NCID2, "depth", depthID)
-      STATUS=NF90_INQ_VARID(NCID2, "biomass", bioID)
       STATUS=NF90_PUT_VAR(NCID2, modtimeID, DBLE(time), start=(/ prcount /))
       status=NF90_PUT_VAR(NCID2, lonID, xpar2,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
       status=NF90_PUT_VAR(NCID2, latID, ypar2,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
       status=NF90_PUT_VAR(NCID2, depthID, zpar,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
-      if (mod_hab==1 .and. bio_on==1) then
+      if (iof_salt) then
+        STATUS=NF90_INQ_VARID(NCID2, "salt", saltID)
+        status=NF90_PUT_VAR(NCID2, saltID, salt_par,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+      endif
+      if (iof_temp) then
+        STATUS=NF90_INQ_VARID(NCID2, "temp", tempID)
+        status=NF90_PUT_VAR(NCID2, tempID, temp_par,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+      endif
+      if (iof_solar) then
+        STATUS=NF90_INQ_VARID(NCID2, "solar", solarID)
+        status=NF90_PUT_VAR(NCID2, solarID, solar_par,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+      endif
+      if (iof_biomass) then
+        STATUS=NF90_INQ_VARID(NCID2, "biomass", bioID)
         status=NF90_PUT_VAR(NCID2, bioID, den_hab,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+      endif
+      if (iof_din) then
+        STATUS=NF90_INQ_VARID(NCID2, "din", dinID)
+        status=NF90_PUT_VAR(NCID2, dinID, DIN_par,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+      endif
+      if (iof_tss) then
+        STATUS=NF90_INQ_VARID(NCID2, "tss", tssID)
+        status=NF90_PUT_VAR(NCID2, tssID, TSS_par,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+      endif
+      if (iof_growth) then
+        STATUS=NF90_INQ_VARID(NCID2, "growth", growthID)
+        status=NF90_PUT_VAR(NCID2, growthID, G, start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+      endif
+      if (iof_mortality) then
+        STATUS=NF90_INQ_VARID(NCID2, "mortality", mortalityID)
+        status=NF90_PUT_VAR(NCID2, mortalityID, G_mor,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+      endif
+      if (iof_agg) then
+        STATUS=NF90_INQ_VARID(NCID2, "agg", aggID)
+        status=NF90_PUT_VAR(NCID2, aggID, G_agg,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
       endif
       STATUS=NF_CLOSE(NCID2)
       write(*,*) 'write into ',TRIM(ncFile)
