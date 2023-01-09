@@ -5,11 +5,11 @@ import sys
 #compile command
 cmd=f'''cd ~/ptrack_schism; ifort -mcmodel=medium -CB -assume byterecl -O2 -o ptrack3.WW ptrack3.f90 compute_zcor.f90 schism_geometry.f90 -I$NETCDF/include -I$NETCDF_FORTRAN/include -L$NETCDF_FORTRAN/lib -L$NETCDF/lib -lnetcdf -lnetcdff'''
 print(cmd); os.system(cmd)
-if not os.path.exists('../ptrack3.WW'): sys.exit('no success in compiling')
+if not os.path.exists('~/ptrack3.WW'): sys.exit('no success in compiling')
 #add git tag
 tag=os.popen('git log').read().split('\n')[0].split()[1][:8]
 host=os.popen('echo $HOST').read().split('.')[0].upper()
-cmd=f'mv ~/ptrack_schism/ptrack3.WW ./ptrack3.WW.{host}.{tag}; ln -sf ptrack3.WW.{host}.{tag} ptrack3.WW; ./ptrack3.WW'
+cmd=f'mv ~/ptrack_schism/ptrack3.WW ./ptrack3.WW.{host}.{tag}; ln -sf ptrack3.WW.{host}.{tag} ptrack3.WW; ' #
 print(cmd); os.system(cmd)
 
 
