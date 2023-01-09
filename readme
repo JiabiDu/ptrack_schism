@@ -8,7 +8,7 @@ To do list:
     3. add sediment age; 
     4. resuspened into the last layer when the bottom shear stress is larger than the critical erosional shear stress
 -- find out why some particles are skip for York HAB simulation
--- find out why temp and salt being zero in the pt model output. 
+-- starting from a specified file
 
 ============================ LESSSONS =============================
 1. need to add 'return' in subroutine, otherwise error will show up

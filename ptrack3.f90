@@ -1248,7 +1248,6 @@
           if (mod_hab==1 .and. tss_on==1) TSS_par(i)=0
           do j=1,3 !1st tri for quads
             id=nodel2(j)
-            if (i==1 .and. j==1) print*,vxn(id),vyn(id),vzn(id),ctn(id),csn(id),vs(id),vDIN(id),vTSS(id)
             upar(i)=upar(i)+vxn(id)*arco(j)
             vpar(i)=vpar(i)+vyn(id)*arco(j)
             wpar(i)=wpar(i)+vzn(id)*arco(j)
