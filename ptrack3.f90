@@ -194,7 +194,8 @@
       endif
       if (tss_on==0) iof_tss=0
       if (din_on==0) iof_din=0
-            
+      print*,'output salt, temp, solar, biomass, din,tss,growth, mortality,agg'      
+      print*,iof_salt,iof_temp,iof_solar,iof_biomass,iof_din,iof_tss,iof_growth,iof_mortality,iof_agg
       allocate(i_rec(ndeltp)) !used for DIN reading
 !... check the parameters    
       write(*,*) 'nc directory:',trim(ncDir)
