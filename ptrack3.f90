@@ -180,9 +180,11 @@
       read (nml=PTOUT, iostat=rc, unit=fu)
       if (mod_hab==1) then
         salt_on=1; temp_on=1; solar_on=1
-        if (bio_on==0) then
-          tss_on=0; din_on=0
-        endif
+      else
+        bio_on=0
+      endif
+      if (bio_on==0) then
+        tss_on=0; din_on=0
       endif 
       if (salt_on==0) iof_salt=0
       if (temp_on==0) iof_temp=0
@@ -1043,7 +1045,6 @@
       do i=1,nparticle
         eta_p=0; dp_p=0 !for output before moving
         if((ibf==1.and.time<=st_p(i)).or.(ibf==-1.and.time>st_p(i)-dt)) go to 449 !output directly
-
         if(mod_oil==1) then
           if(ist(i)==0) ist(i)=1 !particle activated
           if(ist(i)==-2) then
@@ -1053,7 +1054,6 @@
           endif
           if(ist(i)/=1) go to 449
         endif !mod_oil
-
         pt=dt !tracking time step
 !...    Initialize starting level 
         if(levpar(i)==-99) then !just started
@@ -1107,7 +1107,6 @@
 
           endif !wet
         endif !levpar=-99
-
 !	Wetting/drying
         if(idry_e(ielpar(i))==1) then
           levpar(i)=-1
@@ -1364,7 +1363,6 @@
           chla(i)=den_hab(i)*1.69e-8 !cell/m^3 to mg chla/m3
         endif
 449     continue
-
         if(mod_oil==1) then
           !Calculate remaining mass
           if(ist(i)/=0) then
@@ -1374,7 +1372,6 @@
             amas(i)=yc+(y0-yc)*exp(max(arg,-20.d0))
           endif
         endif !mod_oil      
-
         if(ics==2) then
           call cppinverse(xout, yout, xpar(i), ypar(i), slam0, sfea0)
           xout = xout * 180.0 / pi
@@ -1394,7 +1391,6 @@
           !write(97,*)'wet:',i34(ie4),real(arco(1:3)),real(uu2(elnode(1:i34(ie4),ie4),levpar(i))), &
           !&real(vv2(elnode(1:i34(ie4),ie4),levpar(i))),real(eta3(elnode(1:i34(ie4),ie4)))
         endif !levpar
-
 !!        write(95,'(2e14.4)')time,ztmp2(nvrt)
 !!        write(*,'(2e14.4)')time,zpar(i)-eta3(ielpar(i))
       enddo !i=1,nparticle
