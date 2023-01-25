@@ -6,7 +6,7 @@ import sys
 #compile the code
 cmd=f'''cd ~/ptrack_schism; ifort -mcmodel=medium -CB -assume byterecl -O2 -o ptrack3.WW ptrack3.f90 compute_zcor.f90 schism_geometry.f90 -I$NETCDF/include -I$NETCDF_FORTRAN/include -L$NETCDF_FORTRAN/lib -L$NETCDF/lib -lnetcdf -lnetcdff'''
 print(cmd); os.system(cmd)
-#if not os.path.exists(f'/home/jdu/ptrack_schism/ptrack3.WW'): sys.exit('no success in compiling')
+if len(os.popen(f'ls ~/ptrack_schism/ptrack3.WW'))==0: sys.exit('no success in compiling; no ptrack3.WW in ~/ptrack_schism')
 
 #add git tag
 tag=os.popen('cd ~/ptrack_schism; git log').read().split('\n')[0].split()[1][:8]

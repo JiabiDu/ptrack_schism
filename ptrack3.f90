@@ -1297,17 +1297,21 @@
           jlev0=jlev
 !...      HAB biomass calculation based on Qin 2021 and Xiong's implementation
           if (mod_hab==1 .and. bio_on==1) then
-            if (i==1 .and. idt==1) write(*,*) 'calculate HAB biomass'
+            if (i==1 .and. idt==1) write(*,*) 'calculate HAB biomass' 
             Topt=25.1; ! Topt=27.0
             Sopt=34. 
+            kt1=0.0230
+            kt2=0.0277
+            ks1=0.0024
+            ks2=0.0222 
             Gopt_P=1.06/86400.
             Gopt_H=0.62/86400.
             half_I = 30. ! umol/m2/s; irradiance half-satuartion coefficience
             half_DIN=0.028
-            if(temp_par(i)<=Topt) fT(i)=exp(-0.0230*(temp_par(i)-Topt)**2)
-            if(temp_par(i)>Topt)  fT(i)=exp(-0.0277*(temp_par(i)-Topt)**2)
-            if(salt_par(i)<=Sopt) fS(i)=exp(-0.0024*(salt_par(i)-Sopt)**2)
-            if(salt_par(i)>Sopt)  fS(i)=exp(-0.0222*(salt_par(i)-Sopt)**2)
+            if(temp_par(i)<=Topt) fT(i)=exp(-kt1*(temp_par(i)-Topt)**2)
+            if(temp_par(i)>Topt)  fT(i)=exp(-kt2*(temp_par(i)-Topt)**2)
+            if(salt_par(i)<=Sopt) fS(i)=exp(-ks1*(salt_par(i)-Sopt)**2)
+            if(salt_par(i)>Sopt)  fS(i)=exp(-ks2*(salt_par(i)-Sopt)**2)
             
             ! light limitation
             ! f_kd = 2.1 ! irraiance extinction coefficient
