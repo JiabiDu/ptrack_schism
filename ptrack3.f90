@@ -87,7 +87,7 @@
         integer, save :: mod_oil,mod_hab, mod_oyester, mod_plastic,mod_mercury,&
        &swim,tss_on,bio_on,din_on   !HAB
         integer, save :: iof_salt,iof_temp,iof_solar,iof_biomass,iof_din,iof_tss,iof_growth,iof_mortality,iof_agg
-        
+        real,save:: Topt,Sopt,kt1,kt2,ks1,ks2,Gopt_H,Gopt_P,half_I,half_DIN,R0,theta_R,fP,cap !for HAB biomass
 !...    Output handles
         character(len=48), save :: start_time,version
         character(len=12), save :: ifile_char
@@ -171,12 +171,18 @@
                       &istiff,ics,slam0,sfea0,h0,rnday,dtm,nspool,ihfskip,&
                       &ndeltp,newio,salt_on,temp_on,diff_on,solar_on
       namelist /OIL/ mod_oil,ihdf,hdc,horcon,ibuoy,iwind,pbeach
-      namelist /HAB/ mod_hab,swim,timezone,swim_spd,swim_spd2,bio_on,din_on,tss_on
+      namelist /HAB/ mod_hab,swim,timezone,swim_spd,swim_spd2,bio_on,din_on,tss_on,&
+                     &Topt,Sopt,kt1,kt2,ks1,ks2,Gopt_P,Gopt_H,half_I,half_DIN,&
+                     &R0,theta_R,fP,cap
       namelist /PTOUT/ iof_temp,iof_salt,iof_solar,iof_tss,iof_din,iof_biomass,iof_growth,iof_mortality,iof_agg
       open (action='read', file='param.in', iostat=rc, newunit=fu)
       read (nml=CORE, iostat=rc, unit=fu)
       read (nml=OIL, iostat=rc, unit=fu)
       read (nml=HAB, iostat=rc, unit=fu)
+      Gopt_P=Gopt_P/86400. !from per day to per second
+      Gopt_H=Gopt_H/86400.
+      R0=R0/86400.
+      cap=cap/1.69e-8      !from mg/l chla to cell count/l
       read (nml=PTOUT, iostat=rc, unit=fu)
       if (mod_hab==1) then
         salt_on=1; temp_on=1; solar_on=1
@@ -1298,16 +1304,6 @@
 !...      HAB biomass calculation based on Qin 2021 and Xiong's implementation
           if (mod_hab==1 .and. bio_on==1) then
             if (i==1 .and. idt==1) write(*,*) 'calculate HAB biomass' 
-            Topt=25.1; ! Topt=27.0
-            Sopt=34. 
-            kt1=0.0230
-            kt2=0.0277
-            ks1=0.0024
-            ks2=0.0222 
-            Gopt_P=1.06/86400.
-            Gopt_H=0.62/86400.
-            half_I = 30. ! umol/m2/s; irradiance half-satuartion coefficience
-            half_DIN=0.028
             if(temp_par(i)<=Topt) fT(i)=exp(-kt1*(temp_par(i)-Topt)**2)
             if(temp_par(i)>Topt)  fT(i)=exp(-kt2*(temp_par(i)-Topt)**2)
             if(salt_par(i)<=Sopt) fS(i)=exp(-ks1*(salt_par(i)-Sopt)**2)
@@ -1343,10 +1339,8 @@
             endif
 
             ! respiration
-            R0=0.025/86400; theta_R=1.07; fP=0.16
             Res(i)=R0*theta_R**(temp_par(i)-20.)+fP*GP(i)
               
-            cap = 200./1.69e-8 ! carry capacity 250 mg Chla/m^3 to cell/m^3 -Hofmann
             if(t_grow>=st_p(i)) then 
               G_agg(i) = C1(i)*1.69e-8*0.1/86400.  ! loss rate due to aggreagation(Fennel 2005)
               G_mor(i) = 0.05/86400 + 0.01/86400.*0.5*(1+tanh((temp_par(i)-29.)/0.15))  !mortality

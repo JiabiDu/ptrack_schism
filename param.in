@@ -41,6 +41,20 @@ swim_spd2=-70         !m/day, upward speed
 bio_on=1              !calculate the biomass
 tss_on=1              !read TSS from DIN.nc; only used when bio_on is 1; can be turned off, then no impact from tss on light condition
 din_on=1              !read DIN from DIN.nc; only used when bio_on is 1; can be turned off, then limiting function from DIN is 1 
+Topt=25.1             !optimal temperature; 27.0 in Xiong
+Sopt=34.              !optimal salintiy; 34 in Xiong
+kt1=0.0230            !temperature sensitive coefficient, a larger value make temperature more sensitive when T<Topt,  0.023 in Xiong,
+kt2=0.0277            !temperature sensitive coefficient, a larger value make temperature more sensitive when T>Topt, 0.0277 in Xiong
+ks1=0.0024            !salinity sensitive coefficient, 0.0024 in Xiong
+ks2=0.0222            !salinity sensitive coefficient, 0.022 in Xiong
+Gopt_P=1.06           !optimal growth rate, per day
+Gopt_H=0.62           !optimal growth rate, per day
+half_I=30.            !umol/m2/s; irradiance half-satuartion coefficience, 30 in Xiong
+half_DIN=0.028        !DIN half-saturation, 0.028 in Xiong
+R0=0.025              !respiration, per day
+theta_R=1.07          !for respiration
+fP=0.16               !for respiration
+cap=200.              !carry capacity in mg Chla,  250 mg in  -Hofmann
 /
 
 &PTOUT

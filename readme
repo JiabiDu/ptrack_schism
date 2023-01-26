@@ -29,3 +29,5 @@ A: likely because some array is called but not allocated or defined
 
 7. error "Failed to alloc"
 A: either the varialbes are not defined or has been allocated already
+
+8. in param.in, be careful not to add ';' or '/' for a specific parameter
