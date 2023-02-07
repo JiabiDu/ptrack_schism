@@ -87,7 +87,7 @@
         integer, save :: mod_oil,mod_hab, mod_oyester, mod_plastic,mod_mercury,&
        &swim,tss_on,bio_on,din_on   !HAB
         integer, save :: iof_salt,iof_temp,iof_solar,iof_biomass,iof_din,iof_tss,iof_growth,iof_mortality,iof_agg
-        real,save:: Topt,Sopt,kt1,kt2,ks1,ks2,Gopt_H,Gopt_P,half_I,half_DIN,R0,theta_R,fP,cap !for HAB biomass
+        real,save:: Topt,Sopt,kt1,kt2,ks1,ks2,Gopt_H,Gopt_P,half_I,half_DIN,R0,theta_R,fP,cap !for HAB biomass,T1,T2,Tl,Tu,Teq
 !...    Output handles
         character(len=48), save :: start_time,version
         character(len=12), save :: ifile_char
@@ -173,7 +173,7 @@
       namelist /OIL/ mod_oil,ihdf,hdc,horcon,ibuoy,iwind,pbeach
       namelist /HAB/ mod_hab,swim,timezone,swim_spd,swim_spd2,bio_on,din_on,tss_on,&
                      &Topt,Sopt,kt1,kt2,ks1,ks2,Gopt_P,Gopt_H,half_I,half_DIN,&
-                     &R0,theta_R,fP,cap
+                     &R0,theta_R,fP,cap,Teq,T1,T2,Tl,Tu
       namelist /PTOUT/ iof_temp,iof_salt,iof_solar,iof_tss,iof_din,iof_biomass,iof_growth,iof_mortality,iof_agg
       open (action='read', file='param.in', iostat=rc, newunit=fu)
       read (nml=CORE, iostat=rc, unit=fu)
@@ -1304,11 +1304,15 @@
 !...      HAB biomass calculation based on Qin 2021 and Xiong's implementation
           if (mod_hab==1 .and. bio_on==1) then
             if (i==1 .and. idt==1) write(*,*) 'calculate HAB biomass' 
-            if(temp_par(i)<=Topt) fT(i)=exp(-kt1*(temp_par(i)-Topt)**2)
-            if(temp_par(i)>Topt)  fT(i)=exp(-kt2*(temp_par(i)-Topt)**2)
             if(salt_par(i)<=Sopt) fS(i)=exp(-ks1*(salt_par(i)-Sopt)**2)
             if(salt_par(i)>Sopt)  fS(i)=exp(-ks2*(salt_par(i)-Sopt)**2)
-            
+            if (Teq==1) then !Qin's method
+              if(temp_par(i)<=Topt) fT(i)=exp(-kt1*(temp_par(i)-Topt)**2)
+              if(temp_par(i)>Topt)  fT(i)=exp(-kt2*(temp_par(i)-Topt)**2)
+            endif 
+            if (Teq==2) then !Hoffman's method
+              fT(i)=0.5*(tanh((temp_par(i)-T1)/Tl)-tanh((temp_par(i)-T2)/Tu))            
+            endif 
             ! light limitation
             ! f_kd = 2.1 ! irraiance extinction coefficient
             ! f_kd = 1.1+0.017*C1(i)*1.69e-8
@@ -1327,18 +1331,21 @@
             dp_pp(i)=fT(i)*fS(i)*fmin_INP(i)
             Go_H(i)=Gopt_H*fT(i)*fS(i)*fOM12    ! heterotrophic growth
             Gmax(i)=Gopt_P*fT(i)*fS(i)
+            !option to use hoffman's method
+            !T1=26; T2=31; Tl=1; Tu=2
+            !Gmax(i)=Gopt_P*0.5*(tanh((temp_par(i)-T1)/Tl)-tanh((temp_par(i)-T2)/Tu))
        
             t_grow=time+(idt-1)*dtb  
             day_ini=DMOD(t_grow,86400.)/3600.
             if(day_ini>=6.and.day_ini<=18.) then !daytime
                G(i)=min(Go_P(i)+Go_H(i),Gmax(i));! GP=Go_P
-              GP(i)=Go_P(i)
+               GP(i)=Go_P(i)
             else  !night
-               G(i)=Go_H(i); ! GP=0.
+               G(i)=min(Gmax(i),Go_H(i)); ! GP=0.
                GP(i)=0;
             endif
 
-            ! respiration
+            ! respiration, #not used in the final C calculation
             Res(i)=R0*theta_R**(temp_par(i)-20.)+fP*GP(i)
               
             if(t_grow>=st_p(i)) then 
