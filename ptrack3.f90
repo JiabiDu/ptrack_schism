@@ -87,7 +87,7 @@
         integer, save :: mod_oil,mod_hab, mod_oyester, mod_plastic,mod_mercury,&
        &swim,tss_on,bio_on,din_on   !HAB
         integer, save :: iof_salt,iof_temp,iof_solar,iof_biomass,iof_din,iof_tss,iof_growth,iof_mortality,iof_agg
-        real,save:: Topt,Sopt,kt1,kt2,ks1,ks2,Gopt_H,Gopt_P,half_I,half_DIN,R0,theta_R,fP,cap !for HAB biomass,T1,T2,Tl,Tu,Teq
+        real,save:: Topt,Sopt,kt1,kt2,ks1,ks2,Gopt_H,Gopt_P,half_I,half_DIN,R0,theta_R,fP,cap !for HAB biomass,T1,T2,Tl,Tu,Teq,bio_initial
 !...    Output handles
         character(len=48), save :: start_time,version
         character(len=12), save :: ifile_char
@@ -173,7 +173,7 @@
       namelist /OIL/ mod_oil,ihdf,hdc,horcon,ibuoy,iwind,pbeach
       namelist /HAB/ mod_hab,swim,timezone,swim_spd,swim_spd2,bio_on,din_on,tss_on,&
                      &Topt,Sopt,kt1,kt2,ks1,ks2,Gopt_P,Gopt_H,half_I,half_DIN,&
-                     &R0,theta_R,fP,cap,Teq,T1,T2,Tl,Tu
+                     &R0,theta_R,fP,cap,Teq,T1,T2,Tl,Tu,bio_initial
       namelist /PTOUT/ iof_temp,iof_salt,iof_solar,iof_tss,iof_din,iof_biomass,iof_growth,iof_mortality,iof_agg
       open (action='read', file='param.in', iostat=rc, newunit=fu)
       read (nml=CORE, iostat=rc, unit=fu)
@@ -229,8 +229,10 @@
       nrec=ihfskip/nspool !# of records (steps) per stack
 
 !...  Read in particles
+      print*,'readin particle.bp'
       open(95,file='particle.bp',status='old')
       read(95,*) nparticle
+      print*,'allocating arrays'
       allocate(zpar0(nparticle),xpar(nparticle),ypar(nparticle),zpar(nparticle),xpar2(nparticle),ypar2(nparticle),&
      &st_p(nparticle),idp(nparticle),ielpar(nparticle),levpar(nparticle),upar(nparticle), &
      &vpar(nparticle),wpar(nparticle),iabnorm(nparticle),ist(nparticle),inbr(nparticle), &
@@ -246,6 +248,7 @@
      &G_agg(nparticle),G_mor(nparticle),Res(nparticle),f_kd(nparticle),avg_I(nparticle),&
      &fmin_INP(nparticle),Go_P(nparticle),Go_H(nparticle),Gmax(nparticle),GP(nparticle),dp_pp(nparticle),stat=istat)
       if(istat/=0) stop 'Failed to alloc (2)'
+      print*,'complete allocating'
       levpar=-99 !vertical level
       iabnorm=0 !abnormal tracking exit flag
 
@@ -263,14 +266,17 @@
         endif
         if(st_p(i)<0.or.st_p(i)>rnday*86400) then
           write(11,*)'Starting time for particle ',i,' out of range:',st_p(i)
+          write(*,*)'Starting time for particle ',i,' out of range:',st_p(i)
           stop
         endif
         if(zpar0(i)>0) then
           write(11,*)'Starting z-coord above f.s.',i
+          write(*,*)'Starting z-coord above f.s.',i
           stop
         endif
         if(ibf*st_p(i)<ibf*st_m) st_m=st_p(i)
       enddo !i
+      print*,'complete checking the particle initial time and location'
       close(95)
 
 !... create netcdf output file  !jdu TODO write the major parameters in the global attributes
@@ -814,7 +820,7 @@
       if (temp_on==1) temp_par=0
       if (salt_on==1) salt_par=0
       if (mod_hab==1 .and. bio_on==1) then
-        C1=1.e7;  ! cell/m3
+        C1=bio_initial;  ! cell/m3
         Gnet=0; G=0; fT=0;fS=0  !-jx, C1 is initial cell
         G_mor=0; Res=0; G_agg=0                       !density
         f_kd=0; avg_I=0; fmin_INP=0; Go_P=0; Go_H=0; Gmax=0; GP=0
