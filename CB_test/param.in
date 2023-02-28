@@ -1,0 +1,76 @@
+&CORE
+settling_velocity=0 !settling velocity, m/day
+!ncDir='/scratch/user/emilyjane1215/galveston/t92/outnc/'  !nc output directory
+ncDir='/scratch/user/jdu/CB/run07a/outputs/'    !have to end with /
+newio=1               !1 for new IO; 0 for old IO
+nscreen=1             !1 for screen output
+mod_part=0            !(0: passive; 1: oil spill)
+ibf=1                 !(1: forward; -1: backward)
+istiff=0              !(fix distance from f.s[1] or not[0])
+ics=2                 !1 to use hgrid.gr3, 2 to use hgrid.ll
+slam0=-76             !
+sfea0=37              !
+h0=0.05               !min depth; when eta+dp<h0, stop
+rnday=670              !running time in days, not the duration after particle release
+dtm=150.              !hydro model time step, must be same as in param.nml in hydro model
+nspool=24             !hydro model output frequency, must be same as in param.nml in hydro model
+ihfskip=8640          !time steps for each hydro model output stack, see param.nml in hydro model
+ndeltp=30             !model sub time step dtm/ndeltp
+temp_on=1             !get the temperature for the particle; automatically on if HAB is turned on
+salt_on=1             !get the salinity for the particle; automatically on if HAB is turned on
+diff_on=1             !get diffusivity and use it for random walk
+solar_on=1            !get solar radiation; automatically on if HAB is turned on
+/
+
+&OIL
+mod_oil=0             !turn on oil spill module 
+ihdf=0                !turn on Smagorinsky algorithm - off(0), on(1)
+hdc=0    
+horcon=0
+ibuoy=0               !turn buoyancy of particle  - off(0), on(1)
+iwind=0               !turn wind effect - off(0), on(1)
+pbeach=50             !set percentage of stranding on shore
+/
+
+&HAB
+mod_hab=1             !turn on HAB module, automatically turn on salt, temp, solar; diffusion is optional
+swim=1                !swimming, vertical migration, diurnal, upward during hr 6-18
+timezone=-6           !timezone used to ajust the model GMT time to local time
+swim_spd=30           !m/day, downward speed
+swim_spd2=-70         !m/day, upward speed
+bio_on=1              !calculate the biomass
+tss_on=1              !read TSS from DIN.nc; only used when bio_on is 1; can be turned off, then no impact from tss on light condition
+din_on=1              !read DIN from DIN.nc; only used when bio_on is 1; can be turned off, then limiting function from DIN is 1 
+Teq=2                 !1 to use Qin's method; 2 to use Hoffman's equation
+Topt=25.1             !optimal temperature; only used when Teq==1; 27.0 in Xiong
+Sopt=34.              !optimal salintiy; 34 in Xiong
+kt1=0.0230            !temperature sensitive coefficient, a larger value make temperature more sensitive when T<Topt,  0.023 in Xiong; only used when Teq==1;
+kt2=0.0277            !temperature sensitive coefficient, a larger value make temperature more sensitive when T>Topt, 0.0277 in Xiong; only used when Teq==1;
+T1=26                 !used when Teq==2, See Hoffman 2021
+T2=31                 !used when Teq==2
+Tl=1                  !used when Teq==2
+Tu=2                  !used when Teq==2
+ks1=0.0024            !salinity sensitive coefficient, 0.0024 in Xiong
+ks2=0.0222            !salinity sensitive coefficient, 0.022 in Xiong
+Gopt_P=1.06           !optimal growth rate, per day  #0.18 in Hoffman
+Gopt_H=0.62           !optimal growth rate, per day  
+half_I=30.            !umol/m2/s; irradiance half-satuartion coefficience, 30 in Xiong
+half_DIN=0.028        !DIN half-saturation, 0.028 in Xiong
+R0=0.025              !respiration, per day
+theta_R=1.07          !for respiration
+fP=0.16               !for respiration
+cap=200.              !carry capacity in mg Chla,  250 mg in  -Hofmann
+bio_initial=1.e7      !initial biomass for particles
+/
+
+&PTOUT
+iof_salt=1            !salinity output; only used when salt_on==1
+iof_temp=1            !temperature otuput; only used when temp_on==1
+iof_solar=0           !solar
+iof_biomass=1         !biomass output; only used when bio_on==1
+iof_din=0             !DIN
+iof_tss=0             !TSS
+iof_growth=1          !growth term in HAB
+iof_mortality=1       !mortality term in HAB
+iof_agg=1             !aggregation induced loss term in HAB
+/ 
