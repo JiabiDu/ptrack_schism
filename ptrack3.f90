@@ -1329,7 +1329,7 @@
             if(fI(i)<small1) fI(i)=0.  
             fN(i)=1.;  !nutrient limitation
             if (din_on==1) fN(i)=DIN_par(i)/(DIN_par(i)+half_DIN)
-            if(fN(i)<=0.2) fN(i)=0.2
+            !if(fN(i)<=0.2) fN(i)=0.2
             fOM12=0.7
    
             fmin_INP(i)=min(fI(i),fN(i));
