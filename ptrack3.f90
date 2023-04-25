@@ -140,7 +140,7 @@
       integer :: nodel2(3),varid1,varid2,dimids(3),istat,nvtx,iret,&
      &ielev_id,iu_id,iv_id,iw_id,iwindx,iwindy,isolar_id,itemp_id,isalt_id,ncid3,dim1,dim2,&
      &prcount,NCID2,numparID,timeID,modtimeID,lonID,latID,depthID,bioID,fu,rc,&
-     &saltID,tempID,solarID,growthID,mortalityID,dinID,tssID,aggID,dipID
+     &saltID,tempID,solarID,growthID,mortalityID,dinID,tssID,aggID,dipID,fdinID,fdipID
       character(len=200) :: file63,ncFile,ncDir,file2d,fileS,fileT,fileU,fileV,fileW,fileD
       integer :: tmpi
       iseed=5 !Random seed used only for oil spill model, for diffusion  
@@ -174,7 +174,8 @@
       namelist /HAB/ mod_hab,swim,timezone,swim_spd,swim_spd2,bio_on,din_on,dip_on,tss_on,&
                      &Topt,Sopt,kt1,kt2,ks1,ks2,Gopt_P,Gopt_H,half_I,half_DIN,&
                      &R0,theta_R,fP,cap,Teq,T1,T2,Tl,Tu,bio_initial,half_DIP
-      namelist /PTOUT/ iof_temp,iof_salt,iof_solar,iof_tss,iof_din,iof_dip,iof_biomass,iof_growth,iof_mortality,iof_agg
+      namelist /PTOUT/ iof_temp,iof_salt,iof_solar,iof_tss,iof_din,iof_dip,&
+                     &iof_biomass,iof_growth,iof_mortality,iof_agg,iof_fdin,iof_fdip
       open (action='read', file='param.in', iostat=rc, newunit=fu)
       read (nml=CORE, iostat=rc, unit=fu)
       read (nml=OIL, iostat=rc, unit=fu)
@@ -319,6 +320,14 @@
       if(iof_dip) then
         status=NF90_DEF_VAR(NCID2,'dip',NF90_FLOAT,(/numparID,timeID/),dipID)
         status=NF90_PUT_ATT(NCID2,dipID,"long_name","dissolved inorganic phosphate")
+      endif
+      if(iof_fdin) then
+        status=NF90_DEF_VAR(NCID2,'fdin',NF90_FLOAT,(/numparID,timeID/),fdinID)
+        status=NF90_PUT_ATT(NCID2,fdinID,"long_name","limitation of dissolved inorganic nitrogen")
+      endif
+      if(iof_fdip) then
+        status=NF90_DEF_VAR(NCID2,'fdip',NF90_FLOAT,(/numparID,timeID/),fdipID)
+        status=NF90_PUT_ATT(NCID2,fdipID,"long_name","limition of dissolved inorganic phosphate")
       endif
       if(iof_tss) then
         status=NF90_DEF_VAR(NCID2,'tss',NF90_FLOAT,(/numparID,timeID/),tssID)
@@ -1463,6 +1472,14 @@
       if (iof_dip) then
         STATUS=NF90_INQ_VARID(NCID2, "dip", dipID)
         status=NF90_PUT_VAR(NCID2, dipID, DIP_par,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+      endif
+      if (iof_fdin) then
+        STATUS=NF90_INQ_VARID(NCID2, "fdin", fdinID)
+        status=NF90_PUT_VAR(NCID2, fdinID, fDIN,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+      endif
+      if (iof_fdip) then
+        STATUS=NF90_INQ_VARID(NCID2, "fdip", fdipID)
+        status=NF90_PUT_VAR(NCID2, fdipID, fDIP,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
       endif
       if (iof_tss) then
         STATUS=NF90_INQ_VARID(NCID2, "tss", tssID)
