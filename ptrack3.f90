@@ -85,9 +85,9 @@
       	real(kind=dbl_kind), save :: h0,rho0,dt,settling_velocity,timezone,swim_spd,swim_spd2
         real,save :: h_c,theta_b,theta_f,h_s !s_con1
         integer, save :: mod_oil,mod_hab, mod_oyester, mod_plastic,mod_mercury,&
-       &swim,tss_on,bio_on,din_on   !HAB
-        integer, save :: iof_salt,iof_temp,iof_solar,iof_biomass,iof_din,iof_tss,iof_growth,iof_mortality,iof_agg
-        real,save:: Topt,Sopt,kt1,kt2,ks1,ks2,Gopt_H,Gopt_P,half_I,half_DIN,R0,theta_R,fP,cap !for HAB biomass,T1,T2,Tl,Tu,Teq,bio_initial
+       &swim,tss_on,bio_on,din_on,dip_on   !HAB
+        integer, save :: iof_salt,iof_temp,iof_solar,iof_biomass,iof_din,iof_dip,iof_tss,iof_growth,iof_mortality,iof_agg
+        real,save:: Topt,Sopt,kt1,kt2,ks1,ks2,Gopt_H,Gopt_P,half_I,half_DIN,half_DIP,R0,theta_R,fP,cap !for HAB biomass,T1,T2,Tl,Tu,Teq,bio_initial
 !...    Output handles
         character(len=48), save :: start_time,version
         character(len=12), save :: ifile_char
@@ -128,19 +128,19 @@
      &temp_par(:),salt_par(:),solar_par(:) !HAB
       real*8, allocatable :: den_hab(:),chla(:),Gnet(:),C1(:),C2(:),&
      &G(:),fT(:),fS(:),t_DIN(:),DIN_all(:,:),t_TSS(:),TSS_all(:,:),DIN_par(:),TSS_par(:),&
-     &fI(:),fN(:),Res(:),G_agg(:),G_mor(:),f_kd(:),avg_I(:),fmin_INP(:),Go_P(:),Go_H(:),Gmax(:),&
-     &GP(:),dp_pp(:) !HAB
+     &fI(:),fDIN(:),fDIP(:),Res(:),G_agg(:),G_mor(:),f_kd(:),avg_I(:),fmin_INP(:),Go_P(:),Go_H(:),Gmax(:),&
+     &GP(:),dp_pp(:),t_DIP(:),DIP_all(:,:),DIP_par(:) !HAB
  
       real, allocatable :: zlcl(:),real_ar(:,:)
       integer, allocatable :: ielpar(:),levpar(:),iabnorm(:),ist(:),inbr(:),i_rec(:)
       character(len=25), allocatable :: idp(:)
       real*8 :: vxl(4,2),vyl(4,2),vzl(4,2),vxn(4),vyn(4),vzn(4),arco(3), &
      &dx(10),dy(10),dz(10),val(4,2),vbl(4,2),vcl(4,2),vdl(4,2),van(4),vcn(4),vdn(4),vwx(4),vwy(4),&
-     &csl(4,2),ctl(4,2),csn(4),ctn(4),vs(4),vDIN(4),vTSS(4)
+     &csl(4,2),ctl(4,2),csn(4),ctn(4),vs(4),vDIN(4),vTSS(4),vDIP(4)
       integer :: nodel2(3),varid1,varid2,dimids(3),istat,nvtx,iret,&
      &ielev_id,iu_id,iv_id,iw_id,iwindx,iwindy,isolar_id,itemp_id,isalt_id,ncid3,dim1,dim2,&
      &prcount,NCID2,numparID,timeID,modtimeID,lonID,latID,depthID,bioID,fu,rc,&
-     &saltID,tempID,solarID,growthID,mortalityID,dinID,tssID,aggID
+     &saltID,tempID,solarID,growthID,mortalityID,dinID,tssID,aggID,dipID
       character(len=200) :: file63,ncFile,ncDir,file2d,fileS,fileT,fileU,fileV,fileW,fileD
       integer :: tmpi
       iseed=5 !Random seed used only for oil spill model, for diffusion  
@@ -171,10 +171,10 @@
                       &istiff,ics,slam0,sfea0,h0,rnday,dtm,nspool,ihfskip,&
                       &ndeltp,newio,salt_on,temp_on,diff_on,solar_on
       namelist /OIL/ mod_oil,ihdf,hdc,horcon,ibuoy,iwind,pbeach
-      namelist /HAB/ mod_hab,swim,timezone,swim_spd,swim_spd2,bio_on,din_on,tss_on,&
+      namelist /HAB/ mod_hab,swim,timezone,swim_spd,swim_spd2,bio_on,din_on,dip_on,tss_on,&
                      &Topt,Sopt,kt1,kt2,ks1,ks2,Gopt_P,Gopt_H,half_I,half_DIN,&
-                     &R0,theta_R,fP,cap,Teq,T1,T2,Tl,Tu,bio_initial
-      namelist /PTOUT/ iof_temp,iof_salt,iof_solar,iof_tss,iof_din,iof_biomass,iof_growth,iof_mortality,iof_agg
+                     &R0,theta_R,fP,cap,Teq,T1,T2,Tl,Tu,bio_initial,half_DIP
+      namelist /PTOUT/ iof_temp,iof_salt,iof_solar,iof_tss,iof_din,iof_dip,iof_biomass,iof_growth,iof_mortality,iof_agg
       open (action='read', file='param.in', iostat=rc, newunit=fu)
       read (nml=CORE, iostat=rc, unit=fu)
       read (nml=OIL, iostat=rc, unit=fu)
@@ -190,7 +190,7 @@
         bio_on=0
       endif
       if (bio_on==0) then
-        tss_on=0; din_on=0
+        tss_on=0; din_on=0; dip_on=0
       endif 
       if (salt_on==0) iof_salt=0
       if (temp_on==0) iof_temp=0
@@ -200,8 +200,9 @@
       endif
       if (tss_on==0) iof_tss=0
       if (din_on==0) iof_din=0
-      print*,'output salt, temp, solar, biomass, din,tss,growth, mortality,agg'      
-      print*,iof_salt,iof_temp,iof_solar,iof_biomass,iof_din,iof_tss,iof_growth,iof_mortality,iof_agg
+      if (dip_on==0) iof_dip=0
+      print*,'output salt, temp, solar, biomass, din,dip,tss,growth, mortality,agg'      
+      print*,iof_salt,iof_temp,iof_solar,iof_biomass,iof_din,iof_dip,iof_tss,iof_growth,iof_mortality,iof_agg
       allocate(i_rec(ndeltp)) !used for DIN reading
 !... check the parameters    
       write(*,*) 'nc directory:',trim(ncDir)
@@ -244,7 +245,7 @@
       if (solar_on==1) allocate(solar_par(nparticle),stat=istat)
       if (mod_hab==1 .and. bio_on==1) allocate(den_hab(nparticle),C1(nparticle),C2(nparticle),&
      &Gnet(nparticle),chla(nparticle),G(nparticle),fT(nparticle),fS(nparticle),&
-     &DIN_par(nparticle),TSS_par(nparticle),fI(nparticle),fN(nparticle),&
+     &DIN_par(nparticle),DIP_par(nparticle),TSS_par(nparticle),fI(nparticle),fDIN(nparticle),fDIP(nparticle),&
      &G_agg(nparticle),G_mor(nparticle),Res(nparticle),f_kd(nparticle),avg_I(nparticle),&
      &fmin_INP(nparticle),Go_P(nparticle),Go_H(nparticle),Gmax(nparticle),GP(nparticle),dp_pp(nparticle),stat=istat)
       if(istat/=0) stop 'Failed to alloc (2)'
@@ -314,6 +315,10 @@
       if(iof_din) then
         status=NF90_DEF_VAR(NCID2,'din',NF90_FLOAT,(/numparID,timeID/),dinID)
         status=NF90_PUT_ATT(NCID2,dinID,"long_name","dissolved inorganic nitrogen")
+      endif
+      if(iof_dip) then
+        status=NF90_DEF_VAR(NCID2,'dip',NF90_FLOAT,(/numparID,timeID/),dipID)
+        status=NF90_PUT_ATT(NCID2,dipID,"long_name","dissolved inorganic phosphate")
       endif
       if(iof_tss) then
         status=NF90_DEF_VAR(NCID2,'tss',NF90_FLOAT,(/numparID,timeID/),tssID)
@@ -555,6 +560,19 @@
         iret=nf90_inq_varid(ncid3,'time',varid1)
         iret=nf90_get_var(ncid3,varid1,t_DIN)
         t_TSS=t_DIN
+      endif
+      if (mod_hab==1 .and. dip_on==1) then
+        iret=nf90_open('DIN.nc',OR(NF90_NETCDF4,NF90_NOWRITE),ncid3)
+        iret=nf90_inq_varid(ncid3,'DIP',varid1)
+        iret=nf90_Inquire_Variable(ncid3,varid1,dimids=dimids)
+        iret=nf90_Inquire_Dimension(ncid3,dimids(1),len=dim1)
+        iret=nf90_Inquire_Dimension(ncid3,dimids(2),len=dim2)
+        print*,'dims in DIN.nc:',dim1,dim2
+        if (dim2 /= np) stop 'The sedond dimension in DIP should be equal to node number'
+        allocate(t_DIP(dim1),DIP_all(dim1,np))
+        iret=nf90_get_var(ncid3,varid1,DIP_all)
+        iret=nf90_inq_varid(ncid3,'time',varid1)
+        iret=nf90_get_var(ncid3,varid1,t_DIP)
       endif
       
       !Leave it open as this is the 1st stack to read from
@@ -1041,7 +1059,7 @@
         endif
       endif !diff_on
 !   DIN irec, used to get the value for DIN based on two records
-      if (mod_hab==1 .and. din_on==1) then
+      if (mod_hab==1 .and. (din_on==1 .or. dip_on==1)) then
         dtb=dt/ndeltp
         do idt=1,ndeltp
           t_swm=time+(idt-1)*dtb
@@ -1207,7 +1225,7 @@
 
           call quicksearch(1,idt,i,nnel0,jlev0,dtb,x0,y0,z0,xt,yt,zt,nnel,jlev, &
      &nodel2,arco,zrat,nfl,eta_p,dp_p,ztmp,kbpl,ist(i),inbr(i),rnds,pbeach)
-          if (din_on==1) trat_DIN=(t_swm-t_DIN(i_rec(idt)))/(t_DIN(i_rec(idt)+1)-t_DIN(i_rec(idt)))
+          if (din_on==1 .or. dip_on==1) trat_DIN=(t_swm-t_DIN(i_rec(idt)))/(t_DIN(i_rec(idt)+1)-t_DIN(i_rec(idt)))
 !	  nnel not dry
 !	  Interpolate in time
           do j=1,i34(nnel)
@@ -1218,6 +1236,7 @@
             endif !mod_oil
             if (solar_on==1) vs(j) =solar1(nd)*(1-trat)+solar2(nd)*trat
             if (din_on==1)  vDIN(j)=DIN_all(i_rec(idt),nd)*(1-trat_DIN)+DIN_all(i_rec(idt)+1,nd)*trat_DIN
+            if (dip_on==1)  vDIP(j)=DIP_all(i_rec(idt),nd)*(1-trat_DIN)+DIP_all(i_rec(idt)+1,nd)*trat_DIN
             if (tss_on==1)  vTSS(j)=TSS_all(i_rec(idt),nd)*(1-trat_DIN)+TSS_all(i_rec(idt)+1,nd)*trat_DIN
 
             do l=1,2
@@ -1257,6 +1276,7 @@
           if (salt_on==1) salt_par(i)=0
           if (solar_on==1) solar_par(i)=0
           if (mod_hab==1 .and. din_on==1) DIN_par(i)=0
+          if (mod_hab==1 .and. dip_on==1) DIP_par(i)=0
           if (mod_hab==1 .and. tss_on==1) TSS_par(i)=0
           do j=1,3 !1st tri for quads
             id=nodel2(j)
@@ -1267,6 +1287,7 @@
             if (salt_on==1) salt_par(i)=salt_par(i)+csn(id)*arco(j)
             if (solar_on==1) solar_par(i)=solar_par(i)+vs(id)*arco(j) ! solar radiation
             if (mod_hab==1 .and. din_on==1) DIN_par(i)=DIN_par(i)+vDIN(id)*arco(j)
+            if (mod_hab==1 .and. dip_on==1) DIP_par(i)=DIP_par(i)+vDIP(id)*arco(j)
             if (mod_hab==1 .and. tss_on==1) TSS_par(i)=TSS_par(i)+vTSS(id)*arco(j)
             if(mod_oil==1) then
               wndx(i)=wndx(i)+vwx(id)*arco(j)  !windx
@@ -1327,12 +1348,14 @@
             avg_I(i) = solar_par(i)*4.6*exp(f_kd(i)*zt)  !1 W/m2=4.6 umol/m2/s; irradiance at particle location,zt<0 
             fI(i)=avg_I(i)/(avg_I(i)+half_I); 
             if(fI(i)<small1) fI(i)=0.  
-            fN(i)=1.;  !nutrient limitation
-            if (din_on==1) fN(i)=DIN_par(i)/(DIN_par(i)+half_DIN)
+            fDIN(i)=1.;  !nutrient limitation
+            fDIP(i)=1.;
+            if (din_on==1) fDIN(i)=DIN_par(i)/(DIN_par(i)+half_DIN)
+            if (dip_on==1) fDIP(i)=DIP_par(i)/(DIP_par(i)+half_DIP)
             !if(fN(i)<=0.2) fN(i)=0.2
             fOM12=0.7
    
-            fmin_INP(i)=min(fI(i),fN(i));
+            fmin_INP(i)=min(fI(i),fDIN(i),fDIP(i));
             Go_P(i)=Gopt_P*fT(i)*fS(i)*fmin_INP(i)  ! photoautotrophic growth
             dp_pp(i)=fT(i)*fS(i)*fmin_INP(i)
             Go_H(i)=Gopt_H*fT(i)*fS(i)*fOM12    ! heterotrophic growth
@@ -1436,6 +1459,10 @@
       if (iof_din) then
         STATUS=NF90_INQ_VARID(NCID2, "din", dinID)
         status=NF90_PUT_VAR(NCID2, dinID, DIN_par,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+      endif
+      if (iof_dip) then
+        STATUS=NF90_INQ_VARID(NCID2, "dip", dipID)
+        status=NF90_PUT_VAR(NCID2, dipID, DIP_par,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
       endif
       if (iof_tss) then
         STATUS=NF90_INQ_VARID(NCID2, "tss", tssID)
