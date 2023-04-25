@@ -86,7 +86,7 @@
         real,save :: h_c,theta_b,theta_f,h_s !s_con1
         integer, save :: mod_oil,mod_hab, mod_oyester, mod_plastic,mod_mercury,&
        &swim,tss_on,bio_on,din_on,dip_on   !HAB
-        integer, save :: iof_salt,iof_temp,iof_solar,iof_biomass,iof_din,iof_dip,iof_tss,iof_growth,iof_mortality,iof_agg
+        integer, save :: iof_salt,iof_temp,iof_solar,iof_biomass,iof_din,iof_dip,iof_tss,iof_growth,iof_mortality,iof_agg,iof_fdin,iof_fdip,iof_fI,iof_fS,iof_fT
         real,save:: Topt,Sopt,kt1,kt2,ks1,ks2,Gopt_H,Gopt_P,half_I,half_DIN,half_DIP,R0,theta_R,fP,cap !for HAB biomass,T1,T2,Tl,Tu,Teq,bio_initial
 !...    Output handles
         character(len=48), save :: start_time,version
@@ -140,7 +140,8 @@
       integer :: nodel2(3),varid1,varid2,dimids(3),istat,nvtx,iret,&
      &ielev_id,iu_id,iv_id,iw_id,iwindx,iwindy,isolar_id,itemp_id,isalt_id,ncid3,dim1,dim2,&
      &prcount,NCID2,numparID,timeID,modtimeID,lonID,latID,depthID,bioID,fu,rc,&
-     &saltID,tempID,solarID,growthID,mortalityID,dinID,tssID,aggID,dipID,fdinID,fdipID
+     &saltID,tempID,solarID,growthID,mortalityID,dinID,tssID,aggID,dipID,fdinID,fdipID,&
+     &fIID,fTID,fSID
       character(len=200) :: file63,ncFile,ncDir,file2d,fileS,fileT,fileU,fileV,fileW,fileD
       integer :: tmpi
       iseed=5 !Random seed used only for oil spill model, for diffusion  
@@ -175,7 +176,8 @@
                      &Topt,Sopt,kt1,kt2,ks1,ks2,Gopt_P,Gopt_H,half_I,half_DIN,&
                      &R0,theta_R,fP,cap,Teq,T1,T2,Tl,Tu,bio_initial,half_DIP
       namelist /PTOUT/ iof_temp,iof_salt,iof_solar,iof_tss,iof_din,iof_dip,&
-                     &iof_biomass,iof_growth,iof_mortality,iof_agg,iof_fdin,iof_fdip
+                     &iof_biomass,iof_growth,iof_mortality,iof_agg,iof_fdin,iof_fdip, &
+                     &iof_fI,iof_fS,iof_fT
       open (action='read', file='param.in', iostat=rc, newunit=fu)
       read (nml=CORE, iostat=rc, unit=fu)
       read (nml=OIL, iostat=rc, unit=fu)
@@ -193,9 +195,15 @@
       if (bio_on==0) then
         tss_on=0; din_on=0; dip_on=0
       endif 
-      if (salt_on==0) iof_salt=0
-      if (temp_on==0) iof_temp=0
-      if (solar_on==0) iof_solar=0
+      if (salt_on==0) then
+        iof_salt=0; iof_fS=0 
+      endif
+      if (temp_on==0) then
+        iof_temp=0; iof_fT=0
+      endif
+      if (solar_on==0) then 
+        iof_solar=0; iof_fI=0 
+      endif
       if (bio_on==0) then
         iof_biomass=0; iof_growth=0; iof_mortality=0; iof_agg=0
       endif
@@ -328,6 +336,18 @@
       if(iof_fdip) then
         status=NF90_DEF_VAR(NCID2,'fdip',NF90_FLOAT,(/numparID,timeID/),fdipID)
         status=NF90_PUT_ATT(NCID2,fdipID,"long_name","limition of dissolved inorganic phosphate")
+      endif
+      if(iof_fI) then
+        status=NF90_DEF_VAR(NCID2,'fI',NF90_FLOAT,(/numparID,timeID/),fIID)
+        status=NF90_PUT_ATT(NCID2,fIID,"long_name","limition of solar")
+      endif
+      if(iof_fS) then
+        status=NF90_DEF_VAR(NCID2,'fS',NF90_FLOAT,(/numparID,timeID/),fSID)
+        status=NF90_PUT_ATT(NCID2,fSID,"long_name","limition of salt")
+      endif
+      if(iof_fT) then
+        status=NF90_DEF_VAR(NCID2,'fT',NF90_FLOAT,(/numparID,timeID/),fTID)
+        status=NF90_PUT_ATT(NCID2,fTID,"long_name","limition of temperature")
       endif
       if(iof_tss) then
         status=NF90_DEF_VAR(NCID2,'tss',NF90_FLOAT,(/numparID,timeID/),tssID)
@@ -1480,6 +1500,18 @@
       if (iof_fdip) then
         STATUS=NF90_INQ_VARID(NCID2, "fdip", fdipID)
         status=NF90_PUT_VAR(NCID2, fdipID, fDIP,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+      endif
+      if (iof_fI) then
+        STATUS=NF90_INQ_VARID(NCID2, "fI", fIID)
+        status=NF90_PUT_VAR(NCID2, fIID, fI,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+      endif
+      if (iof_fS) then
+        STATUS=NF90_INQ_VARID(NCID2, "fS", fSID)
+        status=NF90_PUT_VAR(NCID2, fSID, fS,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+      endif
+      if (iof_fT) then
+        STATUS=NF90_INQ_VARID(NCID2, "fT", fTID)
+        status=NF90_PUT_VAR(NCID2, fTID, fT,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
       endif
       if (iof_tss) then
         STATUS=NF90_INQ_VARID(NCID2, "tss", tssID)
