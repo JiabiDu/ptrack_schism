@@ -1419,7 +1419,7 @@
 
         xpar(i)=xt
         ypar(i)=yt
-        zpar(i)=min(-1*mindp,max(-1.0*maxdp,zt))  !limit the maxdepth of particles
+        zpar(i)=min(-1.0*mindp,max(-1.0*maxdp,zt))  !limit the maxdepth of particles
         ielpar(i)=nnel
         levpar(i)=jlev
         if (mod_hab==1 .and. bio_on==1) then 
