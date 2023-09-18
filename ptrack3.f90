@@ -81,7 +81,7 @@
         real(kind=dbl_kind), parameter :: pi=3.1415926d0 
 
 !...  	Important variables
-        integer, save :: np,ne,ns,nvrt,mnei,mod_part,ibf,istiff,ivcor,kz,nsig,newio,temp_on,salt_on,diff_on,solar_on,maxdp
+        integer, save :: np,ne,ns,nvrt,mnei,mod_part,ibf,istiff,ivcor,kz,nsig,newio,temp_on,salt_on,diff_on,solar_on,maxdp,mindp
       	real(kind=dbl_kind), save :: h0,rho0,dt,settling_velocity,timezone,swim_spd,swim_spd2
         real,save :: h_c,theta_b,theta_f,h_s !s_con1
         integer, save :: mod_oil,mod_hab, mod_oyester, mod_plastic,mod_mercury,&
@@ -170,7 +170,7 @@
 !... read in parameters from param.in,jdu
       namelist /CORE/ settling_velocity,ncDir, nscreen, mod_part,ibf,&
                       &istiff,ics,slam0,sfea0,h0,rnday,dtm,nspool,ihfskip,&
-                      &ndeltp,newio,salt_on,temp_on,diff_on,solar_on,maxdp
+                      &ndeltp,newio,salt_on,temp_on,diff_on,solar_on,maxdp,mindp
       namelist /OIL/ mod_oil,ihdf,hdc,horcon,ibuoy,iwind,pbeach
       namelist /HAB/ mod_hab,swim,timezone,swim_spd,swim_spd2,bio_on,din_on,dip_on,tss_on,&
                      &Topt,Sopt,kt1,kt2,ks1,ks2,Gopt_P,Gopt_H,half_I,half_DIN,&
@@ -1419,7 +1419,7 @@
 
         xpar(i)=xt
         ypar(i)=yt
-        zpar(i)=max(-1*maxdp,zt)  !limit the maxdepth of particles
+        zpar(i)=min(-1*mindp,max(-1.0*maxdp,zt))  !limit the maxdepth of particles
         ielpar(i)=nnel
         levpar(i)=jlev
         if (mod_hab==1 .and. bio_on==1) then 
