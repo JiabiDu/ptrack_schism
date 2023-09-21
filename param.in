@@ -21,7 +21,9 @@ salt_on=1             !get the salinity for the particle; automatically on if HA
 diff_on=1             !get diffusivity and use it for random walk
 solar_on=1            !get solar radiation; automatically on if HAB is turned on
 maxdp=9999            !maximum depth allowed
-mindp=2               !minimum depth
+mindp=0               !minimum depth
+aggdp=2               !aggregation depth, when particle is above the aggdp, it swim down
+aggfac=1            !swimming speed for aggregation
 /
 
 &OIL

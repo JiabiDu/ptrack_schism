@@ -81,7 +81,7 @@
         real(kind=dbl_kind), parameter :: pi=3.1415926d0 
 
 !...  	Important variables
-        integer, save :: np,ne,ns,nvrt,mnei,mod_part,ibf,istiff,ivcor,kz,nsig,newio,temp_on,salt_on,diff_on,solar_on,maxdp,mindp
+        integer, save :: np,ne,ns,nvrt,mnei,mod_part,ibf,istiff,ivcor,kz,nsig,newio,temp_on,salt_on,diff_on,solar_on,maxdp,mindp,aggdp,aggfac
       	real(kind=dbl_kind), save :: h0,rho0,dt,settling_velocity,timezone,swim_spd,swim_spd2
         real,save :: h_c,theta_b,theta_f,h_s !s_con1
         integer, save :: mod_oil,mod_hab, mod_oyester, mod_plastic,mod_mercury,&
@@ -170,7 +170,7 @@
 !... read in parameters from param.in,jdu
       namelist /CORE/ settling_velocity,ncDir, nscreen, mod_part,ibf,&
                       &istiff,ics,slam0,sfea0,h0,rnday,dtm,nspool,ihfskip,&
-                      &ndeltp,newio,salt_on,temp_on,diff_on,solar_on,maxdp,mindp
+                      &ndeltp,newio,salt_on,temp_on,diff_on,solar_on,maxdp,mindp,aggdp,aggfac
       namelist /OIL/ mod_oil,ihdf,hdc,horcon,ibuoy,iwind,pbeach
       namelist /HAB/ mod_hab,swim,timezone,swim_spd,swim_spd2,bio_on,din_on,dip_on,tss_on,&
                      &Topt,Sopt,kt1,kt2,ks1,ks2,Gopt_P,Gopt_H,half_I,half_DIN,&
@@ -1223,7 +1223,13 @@
             t_swm=time+(idt-1)*dtb
             hour=DMOD(t_swm+timezone*3600,86400.)/3600.
             if(hour>=6 .and. hour<=18) then !swim upward during 6-18h  
-              zadv=zadv+dtb*swim_spd
+              if (aggdp==0 .or. z0<-1*aggdp) then
+                zadv=zadv+dtb*swim_spd
+              else !aggregation around aggregation depth (aggdp)
+                if (z0>-1*aggdp) then !above the aggdp,swim down
+                   zadv=zadv-dtb*swim_spd*aggfac
+                endif
+              endif
               if (i==1 .and. idt==1) write(*,*) hour,'swim upward'
             else
               zadv=zadv+dtb*swim_spd2            !swim downward during night
