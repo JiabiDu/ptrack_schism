@@ -23,7 +23,8 @@ solar_on=1            !get solar radiation; automatically on if HAB is turned on
 maxdp=9999            !maximum depth allowed
 mindp=0               !minimum depth
 aggdp=2               !aggregation depth, when particle is above the aggdp, it swim down
-aggfac=1            !swimming speed for aggregation
+aggfac=1              !swimming speed for aggregation
+ved=1.0e-6              !vertical eddy diffusivity, originally 3.0d-4 
 /
 
 &OIL
