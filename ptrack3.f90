@@ -907,7 +907,10 @@
           iret=nf90_open(trim(adjustl(fileV)),OR(NF90_NETCDF4,NF90_NOWRITE),ncidV)
           fileW=trim(ncDir)//'verticalVelocity_'//ifile_char(1:len_char)//'.nc'
           iret=nf90_open(trim(adjustl(fileW)),OR(NF90_NETCDF4,NF90_NOWRITE),ncidW)
-          write(*,*) trim(file63); write(*,*) trim(fileU); write(*,*) trim(fileV); write(*,*) trim(fileW)
+          if(nscreen.eq.1) write(*,*) trim(file63)
+          if(nscreen.eq.1) write(*,*) trim(fileU)
+          if(nscreen.eq.1) write(*,*) trim(fileV)
+          if(nscreen.eq.1) write(*,*) trim(fileW)
           if (salt_on==1) then
             fileS=trim(ncDir)//'salinity_'//ifile_char(1:len_char)//'.nc'
             write(*,*) trim(fileS)
@@ -924,7 +927,7 @@
             iret=nf90_open(trim(adjustl(fileD)),OR(NF90_NETCDF4,NF90_NOWRITE),ncidD)
           endif
         endif
-        write(*,*) 'open file ',trim(file63)
+        if(nscreen.eq.1) write(*,*) 'open file ',trim(file63)
         iret=nf90_open(trim(adjustl(file63)),OR(NF90_NETCDF4,NF90_NOWRITE),ncid)
         if(iret/=nf90_NoErr) stop 'file not found'
         !time is double
