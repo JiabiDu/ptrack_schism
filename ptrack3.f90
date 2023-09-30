@@ -81,7 +81,7 @@
         real(kind=dbl_kind), parameter :: pi=3.1415926d0 
 
 !...  	Important variables
-        integer, save :: np,ne,ns,nvrt,mnei,mod_part,ibf,istiff,ivcor,kz,nsig,newio,temp_on,salt_on,diff_on,solar_on,maxdp,mindp,aggdp,aggfac,ved
+        integer, save :: np,ne,ns,nvrt,mnei,mod_part,ibf,istiff,ivcor,kz,nsig,newio,fwrite,temp_on,salt_on,diff_on,solar_on,maxdp,mindp,aggdp,aggfac,ved
       	real(kind=dbl_kind), save :: h0,rho0,dt,settling_velocity,timezone,swim_spd,swim_spd2
         real,save :: h_c,theta_b,theta_f,h_s !s_con1
         integer, save :: mod_oil,mod_hab, mod_oyester, mod_plastic,mod_mercury,&
@@ -170,7 +170,7 @@
 !... read in parameters from param.in,jdu
       namelist /CORE/ settling_velocity,ncDir, nscreen, mod_part,ibf,&
                       &istiff,ics,slam0,sfea0,h0,rnday,dtm,nspool,ihfskip,&
-                      &ndeltp,newio,salt_on,temp_on,diff_on,solar_on,maxdp,mindp,aggdp,aggfac,ved
+                      &ndeltp,newio,fwrite,salt_on,temp_on,diff_on,solar_on,maxdp,mindp,aggdp,aggfac,ved
       namelist /OIL/ mod_oil,ihdf,hdc,horcon,ibuoy,iwind,pbeach
       namelist /HAB/ mod_hab,swim,timezone,swim_spd,swim_spd2,bio_on,din_on,dip_on,tss_on,&
                      &Topt,Sopt,kt1,kt2,ks1,ks2,Gopt_P,Gopt_H,half_I,half_DIN,&
@@ -1465,79 +1465,82 @@
 !!        write(*,'(2e14.4)')time,zpar(i)-eta3(ielpar(i))
       enddo !i=1,nparticle
 !...  write into netcdf jdu
-      prcount = prcount+1
-      status=NF90_OPEN(TRIM(ncFile), NF90_WRITE, NCID2)
-      STATUS=NF90_INQ_VARID(NCID2, "time", modtimeID)
-      STATUS=NF90_INQ_VARID(NCID2, "lon", lonID)
-      STATUS=NF90_INQ_VARID(NCID2, "lat", latID)
-      STATUS=NF90_INQ_VARID(NCID2, "depth", depthID)
-      STATUS=NF90_PUT_VAR(NCID2, modtimeID, DBLE(time), start=(/ prcount /))
-      status=NF90_PUT_VAR(NCID2, lonID, xpar2,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
-      status=NF90_PUT_VAR(NCID2, latID, ypar2,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
-      status=NF90_PUT_VAR(NCID2, depthID, zpar,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
-      if (iof_salt) then
-        STATUS=NF90_INQ_VARID(NCID2, "salt", saltID)
-        status=NF90_PUT_VAR(NCID2, saltID, salt_par,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+      if (fwrite==0) then
+        prcount = prcount+1
+        status=NF90_OPEN(TRIM(ncFile), NF90_WRITE, NCID2)
+        STATUS=NF90_INQ_VARID(NCID2, "time", modtimeID)
+        STATUS=NF90_INQ_VARID(NCID2, "lon", lonID)
+        STATUS=NF90_INQ_VARID(NCID2, "lat", latID)
+        STATUS=NF90_INQ_VARID(NCID2, "depth", depthID)
+        STATUS=NF90_PUT_VAR(NCID2, modtimeID, DBLE(time), start=(/ prcount /))
+        status=NF90_PUT_VAR(NCID2, lonID, xpar2,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+        status=NF90_PUT_VAR(NCID2, latID, ypar2,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+        status=NF90_PUT_VAR(NCID2, depthID, zpar,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+        if (iof_salt) then
+          STATUS=NF90_INQ_VARID(NCID2, "salt", saltID)
+          status=NF90_PUT_VAR(NCID2, saltID, salt_par,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+        endif
+        if (iof_temp) then
+          STATUS=NF90_INQ_VARID(NCID2, "temp", tempID)
+          status=NF90_PUT_VAR(NCID2, tempID, temp_par,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+        endif
+        if (iof_solar) then
+          STATUS=NF90_INQ_VARID(NCID2, "solar", solarID)
+          status=NF90_PUT_VAR(NCID2, solarID, solar_par,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+        endif
+        if (iof_biomass) then
+          STATUS=NF90_INQ_VARID(NCID2, "biomass", bioID)
+          status=NF90_PUT_VAR(NCID2, bioID, den_hab,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+        endif
+        if (iof_din) then
+          STATUS=NF90_INQ_VARID(NCID2, "din", dinID)
+          status=NF90_PUT_VAR(NCID2, dinID, DIN_par,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+        endif
+        if (iof_dip) then
+          STATUS=NF90_INQ_VARID(NCID2, "dip", dipID)
+          status=NF90_PUT_VAR(NCID2, dipID, DIP_par,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+        endif
+        if (iof_fdin) then
+          STATUS=NF90_INQ_VARID(NCID2, "fdin", fdinID)
+          status=NF90_PUT_VAR(NCID2, fdinID, fDIN,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+        endif
+        if (iof_fdip) then
+          STATUS=NF90_INQ_VARID(NCID2, "fdip", fdipID)
+          status=NF90_PUT_VAR(NCID2, fdipID, fDIP,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+        endif
+        if (iof_fI) then
+          STATUS=NF90_INQ_VARID(NCID2, "fI", fIID)
+          status=NF90_PUT_VAR(NCID2, fIID, fI,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+        endif
+        if (iof_fS) then
+          STATUS=NF90_INQ_VARID(NCID2, "fS", fSID)
+          status=NF90_PUT_VAR(NCID2, fSID, fS,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+        endif
+        if (iof_fT) then
+          STATUS=NF90_INQ_VARID(NCID2, "fT", fTID)
+          status=NF90_PUT_VAR(NCID2, fTID, fT,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+        endif
+        if (iof_tss) then
+          STATUS=NF90_INQ_VARID(NCID2, "tss", tssID)
+          status=NF90_PUT_VAR(NCID2, tssID, TSS_par,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+        endif
+        if (iof_growth) then
+          STATUS=NF90_INQ_VARID(NCID2, "growth", growthID)
+          status=NF90_PUT_VAR(NCID2, growthID, G, start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+        endif
+        if (iof_mortality) then
+          STATUS=NF90_INQ_VARID(NCID2, "mortality", mortalityID)
+          status=NF90_PUT_VAR(NCID2, mortalityID, G_mor,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+        endif
+        if (iof_agg) then
+          STATUS=NF90_INQ_VARID(NCID2, "agg", aggID)
+          status=NF90_PUT_VAR(NCID2, aggID, G_agg,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+        endif
+        STATUS=NF_CLOSE(NCID2)
+        write(*,*) 'write into ',TRIM(ncFile)
+      else
+        write(*,*) 'storing data into X3,Y3,Z3,Time3'
       endif
-      if (iof_temp) then
-        STATUS=NF90_INQ_VARID(NCID2, "temp", tempID)
-        status=NF90_PUT_VAR(NCID2, tempID, temp_par,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
-      endif
-      if (iof_solar) then
-        STATUS=NF90_INQ_VARID(NCID2, "solar", solarID)
-        status=NF90_PUT_VAR(NCID2, solarID, solar_par,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
-      endif
-      if (iof_biomass) then
-        STATUS=NF90_INQ_VARID(NCID2, "biomass", bioID)
-        status=NF90_PUT_VAR(NCID2, bioID, den_hab,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
-      endif
-      if (iof_din) then
-        STATUS=NF90_INQ_VARID(NCID2, "din", dinID)
-        status=NF90_PUT_VAR(NCID2, dinID, DIN_par,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
-      endif
-      if (iof_dip) then
-        STATUS=NF90_INQ_VARID(NCID2, "dip", dipID)
-        status=NF90_PUT_VAR(NCID2, dipID, DIP_par,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
-      endif
-      if (iof_fdin) then
-        STATUS=NF90_INQ_VARID(NCID2, "fdin", fdinID)
-        status=NF90_PUT_VAR(NCID2, fdinID, fDIN,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
-      endif
-      if (iof_fdip) then
-        STATUS=NF90_INQ_VARID(NCID2, "fdip", fdipID)
-        status=NF90_PUT_VAR(NCID2, fdipID, fDIP,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
-      endif
-      if (iof_fI) then
-        STATUS=NF90_INQ_VARID(NCID2, "fI", fIID)
-        status=NF90_PUT_VAR(NCID2, fIID, fI,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
-      endif
-      if (iof_fS) then
-        STATUS=NF90_INQ_VARID(NCID2, "fS", fSID)
-        status=NF90_PUT_VAR(NCID2, fSID, fS,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
-      endif
-      if (iof_fT) then
-        STATUS=NF90_INQ_VARID(NCID2, "fT", fTID)
-        status=NF90_PUT_VAR(NCID2, fTID, fT,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
-      endif
-      if (iof_tss) then
-        STATUS=NF90_INQ_VARID(NCID2, "tss", tssID)
-        status=NF90_PUT_VAR(NCID2, tssID, TSS_par,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
-      endif
-      if (iof_growth) then
-        STATUS=NF90_INQ_VARID(NCID2, "growth", growthID)
-        status=NF90_PUT_VAR(NCID2, growthID, G, start=(/ 1, prcount /),count=(/ nparticle, 1 /))
-      endif
-      if (iof_mortality) then
-        STATUS=NF90_INQ_VARID(NCID2, "mortality", mortalityID)
-        status=NF90_PUT_VAR(NCID2, mortalityID, G_mor,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
-      endif
-      if (iof_agg) then
-        STATUS=NF90_INQ_VARID(NCID2, "agg", aggID)
-        status=NF90_PUT_VAR(NCID2, aggID, G_agg,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
-      endif
-      STATUS=NF_CLOSE(NCID2)
-      write(*,*) 'write into ',TRIM(ncFile)
-
 !...  Store info for next step
       uu1=uu2; vv1=vv2; ww1=ww2; eta1=eta2
       hf1=hf2; vf1=vf2; wnx1=wnx2; wny1=wny2
