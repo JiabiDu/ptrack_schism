@@ -101,6 +101,7 @@
         real(kind=dbl_kind),save, allocatable :: snx(:),sny(:),distj(:),dps(:),dldxy(:,:,:)
 
         real(kind=dbl_kind),save, allocatable :: zpar0(:)
+        real*8, save, allocatable :: xpar3(:,:),ypar3(:,:),zpar3(:,:),time3(:)
         !For interface with util routines
         real,save, allocatable :: ztot(:),sigma(:),xcj(:),ycj(:),sigma_lcl(:,:)
 
@@ -242,7 +243,7 @@
       print*,'readin particle.bp'
       open(95,file='particle.bp',status='old')
       read(95,*) nparticle
-      print*,'allocating arrays'
+      print*,'allocating arrays',nparticle
       allocate(zpar0(nparticle),xpar(nparticle),ypar(nparticle),zpar(nparticle),xpar2(nparticle),ypar2(nparticle),&
      &st_p(nparticle),idp(nparticle),ielpar(nparticle),levpar(nparticle),upar(nparticle), &
      &vpar(nparticle),wpar(nparticle),iabnorm(nparticle),ist(nparticle),inbr(nparticle), &
@@ -290,85 +291,86 @@
       close(95)
 
 !... create netcdf output file  !jdu TODO write the major parameters in the global attributes
-      ncFile='out.nc'
-      status=NF90_CREATE(TRIM(ncFile), NF90_NETCDF4, NCID2)
-      !define dimensions
-      status=NF90_DEF_DIM(NCID2,'numpar',nparticle,numparID)
-      status=NF90_DEF_DIM(NCID2,'time',NF90_UNLIMITED,timeID)
-      !define var
-      status=NF90_DEF_VAR(NCID2,'time',NF90_DOUBLE,(/timeID/),modtimeID)
-      status=NF90_DEF_VAR(NCID2,'lon',NF90_FLOAT,(/numparID,timeID/),lonID)
-      status=NF90_DEF_VAR(NCID2,'lat',NF90_FLOAT,(/numparID,timeID/),latID)
-      status=NF90_DEF_VAR(NCID2,'depth',NF90_FLOAT,(/numparID,timeID/),depthID)
-      !put attributes to each variable
-      status=NF90_PUT_ATT(NCID2,depthID,"long_name","depth")
-      status=NF90_PUT_ATT(NCID2,latID,"long_name","latitude")
-      status=NF90_PUT_ATT(NCID2,lonID,"long_name","longitude")
-      status=NF90_PUT_ATT(NCID2,modtimeID,"long_name","Model time")
-      if(iof_biomass) then
-        status=NF90_DEF_VAR(NCID2,'biomass',NF90_FLOAT,(/numparID,timeID/),bioID)
-        status=NF90_PUT_ATT(NCID2,bioID,"long_name","biomass")
+      if (fwrite==0) then
+        ncFile='out.nc'
+        status=NF90_CREATE(TRIM(ncFile), NF90_NETCDF4, NCID2)
+        !define dimensions
+        status=NF90_DEF_DIM(NCID2,'numpar',nparticle,numparID)
+        status=NF90_DEF_DIM(NCID2,'time',NF90_UNLIMITED,timeID)
+        !define var
+        status=NF90_DEF_VAR(NCID2,'time',NF90_DOUBLE,(/timeID/),modtimeID)
+        status=NF90_DEF_VAR(NCID2,'lon',NF90_FLOAT,(/numparID,timeID/),lonID)
+        status=NF90_DEF_VAR(NCID2,'lat',NF90_FLOAT,(/numparID,timeID/),latID)
+        status=NF90_DEF_VAR(NCID2,'depth',NF90_FLOAT,(/numparID,timeID/),depthID)
+        !put attributes to each variable
+        status=NF90_PUT_ATT(NCID2,depthID,"long_name","depth")
+        status=NF90_PUT_ATT(NCID2,latID,"long_name","latitude")
+        status=NF90_PUT_ATT(NCID2,lonID,"long_name","longitude")
+        status=NF90_PUT_ATT(NCID2,modtimeID,"long_name","Model time")
+        if(iof_biomass) then
+          status=NF90_DEF_VAR(NCID2,'biomass',NF90_FLOAT,(/numparID,timeID/),bioID)
+          status=NF90_PUT_ATT(NCID2,bioID,"long_name","biomass")
+        endif
+        if(iof_salt) then
+          status=NF90_DEF_VAR(NCID2,'salt',NF90_FLOAT,(/numparID,timeID/),saltID)
+          status=NF90_PUT_ATT(NCID2,saltID,"long_name","water salinity (psu)")
+        endif
+        if(iof_temp) then
+          status=NF90_DEF_VAR(NCID2,'temp',NF90_FLOAT,(/numparID,timeID/),tempID)
+          status=NF90_PUT_ATT(NCID2,tempID,"long_name","water temerature (C)")
+        endif
+        if(iof_solar) then
+          status=NF90_DEF_VAR(NCID2,'solar',NF90_FLOAT,(/numparID,timeID/),solarID)
+          status=NF90_PUT_ATT(NCID2,solarID,"long_name","solar radiation")
+        endif
+        if(iof_din) then
+          status=NF90_DEF_VAR(NCID2,'din',NF90_FLOAT,(/numparID,timeID/),dinID)
+          status=NF90_PUT_ATT(NCID2,dinID,"long_name","dissolved inorganic nitrogen")
+        endif
+        if(iof_dip) then
+          status=NF90_DEF_VAR(NCID2,'dip',NF90_FLOAT,(/numparID,timeID/),dipID)
+          status=NF90_PUT_ATT(NCID2,dipID,"long_name","dissolved inorganic phosphate")
+        endif
+        if(iof_fdin) then
+          status=NF90_DEF_VAR(NCID2,'fdin',NF90_FLOAT,(/numparID,timeID/),fdinID)
+          status=NF90_PUT_ATT(NCID2,fdinID,"long_name","limitation of dissolved inorganic nitrogen")
+        endif
+        if(iof_fdip) then
+          status=NF90_DEF_VAR(NCID2,'fdip',NF90_FLOAT,(/numparID,timeID/),fdipID)
+          status=NF90_PUT_ATT(NCID2,fdipID,"long_name","limition of dissolved inorganic phosphate")
+        endif
+        if(iof_fI) then
+          status=NF90_DEF_VAR(NCID2,'fI',NF90_FLOAT,(/numparID,timeID/),fIID)
+          status=NF90_PUT_ATT(NCID2,fIID,"long_name","limition of solar")
+        endif
+        if(iof_fS) then
+          status=NF90_DEF_VAR(NCID2,'fS',NF90_FLOAT,(/numparID,timeID/),fSID)
+          status=NF90_PUT_ATT(NCID2,fSID,"long_name","limition of salt")
+        endif
+        if(iof_fT) then
+          status=NF90_DEF_VAR(NCID2,'fT',NF90_FLOAT,(/numparID,timeID/),fTID)
+          status=NF90_PUT_ATT(NCID2,fTID,"long_name","limition of temperature")
+        endif
+        if(iof_tss) then
+          status=NF90_DEF_VAR(NCID2,'tss',NF90_FLOAT,(/numparID,timeID/),tssID)
+          status=NF90_PUT_ATT(NCID2,tssID,"long_name","total suspended sediment")
+        endif
+        if(iof_growth) then
+          status=NF90_DEF_VAR(NCID2,'growth',NF90_FLOAT,(/numparID,timeID/),growthID)
+          status=NF90_PUT_ATT(NCID2,growthID,"long_name","growth rate (per day)")
+        endif
+        if(iof_mortality) then
+          status=NF90_DEF_VAR(NCID2,'mortality',NF90_FLOAT,(/numparID,timeID/),mortalityID)
+          status=NF90_PUT_ATT(NCID2,mortalityID,"long_name","mortality induced loss rate (per day)")
+        endif
+        if(iof_agg) then
+          status=NF90_DEF_VAR(NCID2,'agg',NF90_FLOAT,(/numparID,timeID/),aggID)
+          status=NF90_PUT_ATT(NCID2,aggID,"long_name","aggregation induced loss rate (per day)")
+        endif
+        status=NF90_ENDDEF(NCID2)
+        status=NF90_CLOSE(NCID2)
+        write(*,*) 'Created out.nc'
       endif
-      if(iof_salt) then
-        status=NF90_DEF_VAR(NCID2,'salt',NF90_FLOAT,(/numparID,timeID/),saltID)
-        status=NF90_PUT_ATT(NCID2,saltID,"long_name","water salinity (psu)")
-      endif
-      if(iof_temp) then
-        status=NF90_DEF_VAR(NCID2,'temp',NF90_FLOAT,(/numparID,timeID/),tempID)
-        status=NF90_PUT_ATT(NCID2,tempID,"long_name","water temerature (C)")
-      endif
-      if(iof_solar) then
-        status=NF90_DEF_VAR(NCID2,'solar',NF90_FLOAT,(/numparID,timeID/),solarID)
-        status=NF90_PUT_ATT(NCID2,solarID,"long_name","solar radiation")
-      endif
-      if(iof_din) then
-        status=NF90_DEF_VAR(NCID2,'din',NF90_FLOAT,(/numparID,timeID/),dinID)
-        status=NF90_PUT_ATT(NCID2,dinID,"long_name","dissolved inorganic nitrogen")
-      endif
-      if(iof_dip) then
-        status=NF90_DEF_VAR(NCID2,'dip',NF90_FLOAT,(/numparID,timeID/),dipID)
-        status=NF90_PUT_ATT(NCID2,dipID,"long_name","dissolved inorganic phosphate")
-      endif
-      if(iof_fdin) then
-        status=NF90_DEF_VAR(NCID2,'fdin',NF90_FLOAT,(/numparID,timeID/),fdinID)
-        status=NF90_PUT_ATT(NCID2,fdinID,"long_name","limitation of dissolved inorganic nitrogen")
-      endif
-      if(iof_fdip) then
-        status=NF90_DEF_VAR(NCID2,'fdip',NF90_FLOAT,(/numparID,timeID/),fdipID)
-        status=NF90_PUT_ATT(NCID2,fdipID,"long_name","limition of dissolved inorganic phosphate")
-      endif
-      if(iof_fI) then
-        status=NF90_DEF_VAR(NCID2,'fI',NF90_FLOAT,(/numparID,timeID/),fIID)
-        status=NF90_PUT_ATT(NCID2,fIID,"long_name","limition of solar")
-      endif
-      if(iof_fS) then
-        status=NF90_DEF_VAR(NCID2,'fS',NF90_FLOAT,(/numparID,timeID/),fSID)
-        status=NF90_PUT_ATT(NCID2,fSID,"long_name","limition of salt")
-      endif
-      if(iof_fT) then
-        status=NF90_DEF_VAR(NCID2,'fT',NF90_FLOAT,(/numparID,timeID/),fTID)
-        status=NF90_PUT_ATT(NCID2,fTID,"long_name","limition of temperature")
-      endif
-      if(iof_tss) then
-        status=NF90_DEF_VAR(NCID2,'tss',NF90_FLOAT,(/numparID,timeID/),tssID)
-        status=NF90_PUT_ATT(NCID2,tssID,"long_name","total suspended sediment")
-      endif
-      if(iof_growth) then
-        status=NF90_DEF_VAR(NCID2,'growth',NF90_FLOAT,(/numparID,timeID/),growthID)
-        status=NF90_PUT_ATT(NCID2,growthID,"long_name","growth rate (per day)")
-      endif
-      if(iof_mortality) then
-        status=NF90_DEF_VAR(NCID2,'mortality',NF90_FLOAT,(/numparID,timeID/),mortalityID)
-        status=NF90_PUT_ATT(NCID2,mortalityID,"long_name","mortality induced loss rate (per day)")
-      endif
-      if(iof_agg) then
-        status=NF90_DEF_VAR(NCID2,'agg',NF90_FLOAT,(/numparID,timeID/),aggID)
-        status=NF90_PUT_ATT(NCID2,aggID,"long_name","aggregation induced loss rate (per day)")
-      endif
-      status=NF90_ENDDEF(NCID2)
-      status=NF90_CLOSE(NCID2)
-      write(*,*) 'Created out.nc'
-
 !...  Init. ist etc; some of these are only used in certain models
 !     ist(1:nparticles): 0 - inactive b4 release
 !                        -2 - stranded at wet/dry interface, after some
@@ -880,6 +882,10 @@
       else
         it2=1
         irec1=nrec
+      endif
+      if (fwrite==1) then
+        write(*,*) 'initialize xpar3,ypar3, and zpar3'
+        allocate(xpar3(it2+1-iths,nparticle),ypar3(it2+1-iths,nparticle),zpar3(it2+1-iths,nparticle),time3(it2+1-iths),stat=istat) 
       endif
       do it=iths,it2,ibf !it is total time record #
 !--------------------------------------------------------------------------
@@ -1539,8 +1545,13 @@
         STATUS=NF_CLOSE(NCID2)
         write(*,*) 'write into ',TRIM(ncFile)
       else
-        write(*,*) 'storing data into X3,Y3,Z3,Time3'
+        if(nscreen.eq.1) write(*,*) 'storing dat for it=',it+1-iths
+        xpar3(it+1-iths,:)=xpar2(:)
+        ypar3(it+1-iths,:)=ypar2(:)
+        zpar3(it+1-iths,:)=zpar(:)
+        time3(it+1-iths)=time
       endif
+      
 !...  Store info for next step
       uu1=uu2; vv1=vv2; ww1=ww2; eta1=eta2
       hf1=hf2; vf1=vf2; wnx1=wnx2; wny1=wny2
@@ -1551,8 +1562,33 @@
 
 !--------------------------------------------------------------------------
       enddo !it
-
-      if(nscreen.eq.1) write(*,*)'Completed'
+      if (fwrite==1) then
+        write(*,*) 'write data into out.nc'
+        ncFile='out.nc'
+        status=NF90_CREATE(TRIM(ncFile), NF90_NETCDF4, NCID2)
+        !define dimensions
+        status=NF90_DEF_DIM(NCID2,'numpar',nparticle,numparID)
+        status=NF90_DEF_DIM(NCID2,'time',it2+1-iths,timeID)
+        !define var
+        status=NF90_DEF_VAR(NCID2,'time',NF90_DOUBLE,(/timeID/),modtimeID)
+        status=NF90_DEF_VAR(NCID2,'lon',NF90_FLOAT,(/numparID,timeID/),lonID)
+        status=NF90_DEF_VAR(NCID2,'lat',NF90_FLOAT,(/numparID,timeID/),latID)
+        status=NF90_DEF_VAR(NCID2,'depth',NF90_FLOAT,(/numparID,timeID/),depthID)
+        !put attributes to each variable
+        status=NF90_PUT_ATT(NCID2,depthID,"long_name","depth")
+        status=NF90_PUT_ATT(NCID2,latID,"long_name","latitude")
+        status=NF90_PUT_ATT(NCID2,lonID,"long_name","longitude")
+        status=NF90_PUT_ATT(NCID2,modtimeID,"long_name","Model time") 
+        status=NF90_ENDDEF(NCID2)
+        
+        !put model output into out.nc
+        status=NF90_PUT_VAR(NCID2, modtimeID, time3)
+        status=NF90_PUT_VAR(NCID2, lonID, TRANSPOSE(xpar3))
+        status=NF90_PUT_VAR(NCID2, latID, TRANSPOSE(ypar3))
+        status=NF90_PUT_VAR(NCID2, depthID, TRANSPOSE(zpar3))
+        status=NF90_CLOSE(NCID2)
+      endif
+      write(*,*)'Completed'
 
       stop
       end
