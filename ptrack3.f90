@@ -169,13 +169,15 @@
       ifort12=0 !init
       open(11,file='fort.11',status='replace')
 !... read in parameters from param.in,jdu
+      maxdp=9999.
+      mindp=-9999.   
       namelist /CORE/ settling_velocity,ncDir, nscreen, mod_part,ibf,&
                       &istiff,ics,slam0,sfea0,h0,rnday,dtm,nspool,ihfskip,&
-                      &ndeltp,newio,fwrite,salt_on,temp_on,diff_on,solar_on,maxdp,mindp,aggdp,aggfac,ved
+                      &ndeltp,newio,fwrite,salt_on,temp_on,diff_on,solar_on,maxdp,mindp,ved
       namelist /OIL/ mod_oil,ihdf,hdc,horcon,ibuoy,iwind,pbeach
       namelist /HAB/ mod_hab,swim,timezone,swim_spd,swim_spd2,bio_on,din_on,dip_on,tss_on,&
                      &Topt,Sopt,kt1,kt2,ks1,ks2,Gopt_P,Gopt_H,half_I,half_DIN,&
-                     &R0,theta_R,fP,cap,Teq,T1,T2,Tl,Tu,bio_initial,half_DIP
+                     &R0,theta_R,fP,cap,Teq,T1,T2,Tl,Tu,bio_initial,half_DIP,aggdp,aggfac
       namelist /PTOUT/ iof_temp,iof_salt,iof_solar,iof_tss,iof_din,iof_dip,&
                      &iof_biomass,iof_growth,iof_mortality,iof_agg,iof_fdin,iof_fdip, &
                      &iof_fI,iof_fS,iof_fT
