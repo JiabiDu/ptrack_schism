@@ -169,8 +169,9 @@
       ifort12=0 !init
       open(11,file='fort.11',status='replace')
 !... read in parameters from param.in,jdu
-      maxdp=9999.
-      mindp=-9999.   
+      maxdp=9999. !default value
+      mindp=-9999. !default value
+      ved=3.0d-4  !default value
       namelist /CORE/ settling_velocity,ncDir, nscreen, mod_part,ibf,&
                       &istiff,ics,slam0,sfea0,h0,rnday,dtm,nspool,ihfskip,&
                       &ndeltp,newio,fwrite,salt_on,temp_on,diff_on,solar_on,maxdp,mindp,ved
