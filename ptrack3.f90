@@ -1234,9 +1234,13 @@
           if (swim==1 .and. mod_hab==1) then
             t_swm=time+(idt-1)*dtb
             hour=DMOD(t_swm+timezone*3600,86400.)/3600.
-            if(hour>=6 .and. hour<=19) then !swim upward during 6-18h  
+            if(hour>=6 .and. hour<=18) then !swim upward during 6-18h  
               if (aggdp==0 .or. z0<-1*aggdp) then
-                zadv=zadv+dtb*swim_spd
+                if (hour<=9) then
+                    zadv=zadv+dtb*swim_spd*2
+                else
+                    zadv=zadv+dtb*swim_spd
+                endif
               else !aggregation around aggregation depth (aggdp)
                 if (z0>-1*aggdp) then !above the aggdp,swim down
                    zadv=zadv-dtb*swim_spd*aggfac
@@ -1244,7 +1248,11 @@
               endif
               if (i==1 .and. idt==1) write(*,*) hour,'swim upward'
             else
-              zadv=zadv+dtb*swim_spd2            !swim downward during night
+              if (hour<=21) then
+                  zadv=zadv+dtb*swim_spd2*2            !swim downward during night
+              else
+                  zadv=zadv+dtb*swim_spd2            !swim downward during night
+              endif
               if (i==1 .and. idt==1) write(*,*) hour,'swim downward'
             endif
           endif 
