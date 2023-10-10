@@ -81,7 +81,7 @@
         real(kind=dbl_kind), parameter :: pi=3.1415926d0 
 
 !...  	Important variables
-        integer, save :: np,ne,ns,nvrt,mnei,mod_part,ibf,istiff,ivcor,kz,nsig,newio,fwrite,temp_on,salt_on,diff_on,solar_on,maxdp,mindp,aggdp,aggfac,ved
+        integer, save :: np,ne,ns,nvrt,mnei,mod_part,ibf,istiff,ivcor,kz,nsig,newio,fwrite,temp_on,salt_on,diff_on,solar_on,maxdp,mindp,aggdp,aggfac,ved,speeding
       	real(kind=dbl_kind), save :: h0,rho0,dt,settling_velocity,timezone,swim_spd,swim_spd2
         real,save :: h_c,theta_b,theta_f,h_s !s_con1
         integer, save :: mod_oil,mod_hab, mod_oyester, mod_plastic,mod_mercury,&
@@ -178,7 +178,7 @@
       namelist /OIL/ mod_oil,ihdf,hdc,horcon,ibuoy,iwind,pbeach
       namelist /HAB/ mod_hab,swim,timezone,swim_spd,swim_spd2,bio_on,din_on,dip_on,tss_on,&
                      &Topt,Sopt,kt1,kt2,ks1,ks2,Gopt_P,Gopt_H,half_I,half_DIN,&
-                     &R0,theta_R,fP,cap,Teq,T1,T2,Tl,Tu,bio_initial,half_DIP,aggdp,aggfac
+                     &R0,theta_R,fP,cap,Teq,T1,T2,Tl,Tu,bio_initial,half_DIP,aggdp,aggfac,speeding
       namelist /PTOUT/ iof_temp,iof_salt,iof_solar,iof_tss,iof_din,iof_dip,&
                      &iof_biomass,iof_growth,iof_mortality,iof_agg,iof_fdin,iof_fdip, &
                      &iof_fI,iof_fS,iof_fT
@@ -1236,7 +1236,7 @@
             hour=DMOD(t_swm+timezone*3600,86400.)/3600.
             if(hour>=6 .and. hour<=18) then !swim upward during 6-18h  
               if (aggdp==0 .or. z0<-1*aggdp) then
-                if (hour<=9) then
+                if (hour<=9 .and. speeding==1) then
                     zadv=zadv+dtb*swim_spd*2
                 else
                     zadv=zadv+dtb*swim_spd
@@ -1248,7 +1248,7 @@
               endif
               if (i==1 .and. idt==1) write(*,*) hour,'swim upward'
             else
-              if (hour<=21) then
+              if (hour<=21 .and. speeding==1) then
                   zadv=zadv+dtb*swim_spd2*2            !swim downward during night
               else
                   zadv=zadv+dtb*swim_spd2            !swim downward during night
