@@ -286,7 +286,7 @@
         if(zpar0(i)>0) then
           write(11,*)'Starting z-coord above f.s.',i
           write(*,*)'Starting z-coord above f.s.',i
-          stop
+          !stop
         endif
         if(ibf*st_p(i)<ibf*st_m) st_m=st_p(i)
       enddo !i
