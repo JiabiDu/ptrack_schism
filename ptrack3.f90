@@ -140,7 +140,7 @@
      &csl(4,2),ctl(4,2),csn(4),ctn(4),vs(4),vDIN(4),vTSS(4),vDIP(4)
       integer :: nodel2(3),varid1,varid2,dimids(3),istat,nvtx,iret,&
      &ielev_id,iu_id,iv_id,iw_id,iwindx,iwindy,isolar_id,itemp_id,isalt_id,ncid3,dim1,dim2,&
-     &prcount,NCID2,numparID,timeID,modtimeID,lonID,latID,depthID,bioID,fu,rc,&
+     &prcount,NCID2,numparID,timeID,modtimeID,lonID,latID,depthID,bioID,fu,fx,rc,&
      &saltID,tempID,solarID,growthID,mortalityID,dinID,tssID,aggID,dipID,fdinID,fdipID,&
      &fIID,fTID,fSID
       character(len=200) :: file63,ncFile,hydroDir,ncDir,file2d,fileS,fileT,fileU,fileV,fileW,fileD
@@ -173,7 +173,7 @@
       mindp=-9999. !default value
       ved=3.0d-4  !default value
       namelist /CORE/ settling_velocity,hydroDir, nscreen, mod_part,ibf,&
-                      &istiff,ics,slam0,sfea0,h0,rnday,dtm,nspool,ihfskip,&
+                      &istiff,ics,slam0,sfea0,h0,rnday,&
                       &ndeltp,newio,fwrite,salt_on,temp_on,diff_on,solar_on,maxdp,mindp,ved
       namelist /OIL/ mod_oil,ihdf,hdc,horcon,ibuoy,iwind,pbeach
       namelist /HAB/ mod_hab,swim,timezone,swim_spd,swim_spd2,bio_on,din_on,dip_on,tss_on,&
@@ -182,6 +182,7 @@
       namelist /PTOUT/ iof_temp,iof_salt,iof_solar,iof_tss,iof_din,iof_dip,&
                      &iof_biomass,iof_growth,iof_mortality,iof_agg,iof_fdin,iof_fdip, &
                      &iof_fI,iof_fS,iof_fT
+      
       open (action='read', file='param.in', iostat=rc, newunit=fu)
       read (nml=CORE, iostat=rc, unit=fu)
       read (nml=OIL, iostat=rc, unit=fu)
@@ -217,6 +218,17 @@
       print*,'output salt, temp, solar, biomass, din,dip,tss,growth'      
       print*,iof_salt,iof_temp,iof_solar,iof_biomass,iof_din,iof_dip,iof_tss,iof_growth
       allocate(i_rec(ndeltp)) !used for DIN reading
+      
+      !read some parameters from param.nml in hydro run directory
+      rnday0=rnday !rnday will be reread from hdyroDir/param.nml 
+      namelist /CORE/ ipre,ibc,ibtp,rnday,dt,msc2,mdc2,ntracer_gen,ntracer_age,&
+                      &sed_class,eco_class,nspool,ihfskip !for param.nml in hydro run
+      open (action='read', file=trim(hydroDir)//'param.nml', iostat=rc, newunit=fu)
+      read (nml=CORE, iostat=rc, unit=fu)
+      write(*,*) 'from hydroDir/param.nml,dtm,nspool,ihfskip',dt,nspool,ihfskip
+      dtm=dt
+      rnday=rnday0
+
 !... check the parameters    
       ncDir=trim(hydroDir)//'outputs/' 
       write(*,*) 'nc directory:',trim(ncDir)
