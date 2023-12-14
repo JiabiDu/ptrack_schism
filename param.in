@@ -1,25 +1,27 @@
 &CORE
-settling_velocity=0 !settling velocity, m/day
-hydroDir='/sciclone/scr10/jiabi/CB/run06d/'    !have to end with /
+hydroDir='/scratch/user/jdu/GoM/run19q3_20yr/'    !have to end with /
 newio=1               !1 for new IO; 0 for old IO
-fwrite = 1       !1 for writing the model output at the end of the run, otherwise write every hydro output step
-nscreen=1             !1 for screen output
-mod_part=0            !(0: passive; 1: oil spill)
+fwrite =0             !1 for writing all model output at the end of the run (turn it to 0 if use HAB)
+rnday=150             !running time in days. It is not the duration after particle release.
+                      !if you release particle on day x and want 30 days of results, use x+30
+ndeltp=30             !model sub time step dtm/ndeltp
+diff_on=1             !get diffusivity and use it for random walk
+temp_on=0             !get the temperature for the particle; automatically on if HAB is turned on
+salt_on=0             !get the salinity for the particle; automatically on if HAB is turned on
+solar_on=0            !get solar radiation; automatically on if HAB is turned on
+maxdp=9999            !maximum depth allowed
+mindp=-999            !minimum depth
+ved=3.0d-4            !vertical eddy diffusivity, originally 3.0d-4; used for vertical random walk
+                      !horizontal random walk is determined by the hydro output diffusivity
 ibf=1                 !(1: forward; -1: backward)
 istiff=0              !(fix distance from f.s[1] or not[0])
 ics=2                 !1 to use hgrid.gr3, 2 to use hgrid.ll
-slam0=-76             !
-sfea0=37              !
+settling_velocity=0   !settling velocity, m/day; negative for upward moving
+nscreen=1             !1 for screen output
+mod_part=0            !(0: passive; 1: oil spill)
+slam0=-76             !used for converting xy to lon/lat; used only when ics==1
+sfea0=37              !used for converting xy to lon/lat; used only when ics==1
 h0=0.05               !min depth; when eta+dp<h0, stop
-rnday=300              !running time in days, not the duration after particle release
-ndeltp=30             !model sub time step dtm/ndeltp
-temp_on=1             !get the temperature for the particle; automatically on if HAB is turned on
-salt_on=1             !get the salinity for the particle; automatically on if HAB is turned on
-diff_on=1             !get diffusivity and use it for random walk
-solar_on=1            !get solar radiation; automatically on if HAB is turned on
-maxdp=9999            !maximum depth allowed
-mindp=-9999           !minimum depth
-ved=1.0e-6            !vertical eddy diffusivity, originally 3.0d-4 
 /
 
 &OIL
@@ -33,55 +35,54 @@ pbeach=50             !set percentage of stranding on shore
 /
 
 &HAB
-mod_hab=1             !turn on HAB module, automatically turn on salt, temp, solar; diffusion is optional
+mod_hab=0             !turn on HAB module, automatically turn on salt, temp, solar; diffusion is optional
 swim=1                !swimming, vertical migration, diurnal, upward during hr 6-18
 timezone=-6           !timezone used to ajust the model GMT time to local time
-swim_spd=30           !m/day, downward speed
-swim_spd2=-70         !m/day, upward speed
-speeding=0            !if 1, swiming speed will be doubled for the first 3 hrs
+swim_spd=10           !m/day, downward speed
+swim_spd2=-10         !m/day, upward speed
 bio_on=1              !calculate the biomass
 tss_on=1              !read TSS from DIN.nc; only used when bio_on is 1; can be turned off, then no impact from tss on light condition
 din_on=1              !read DIN from DIN.nc; only used when bio_on is 1; can be turned off, then limiting function from DIN is 1 
 dip_on=1              !read DIP from DIN.nc
-Teq=1                 !1 to use Qin's method; 2 to use Hoffman's equation
-Topt=25.1             !optimal temperature; only used when Teq==1; 27.0 in Xiong
-Sopt=34.              !optimal salintiy; 34 in Xiong
+Teq=2                 !1 to use Qin's method; 2 to use Hoffman's equation
+Topt=28               !optimal temperature; only used when Teq==1; 27.0 in Xiong
+Sopt=20               !optimal salintiy; 34 in Xiong
 kt1=0.0230            !temperature sensitive coefficient, a larger value make temperature more sensitive when T<Topt,  0.023 in Xiong; only used when Teq==1;
 kt2=0.0277            !temperature sensitive coefficient, a larger value make temperature more sensitive when T>Topt, 0.0277 in Xiong; only used when Teq==1;
-T1=26                 !used when Teq==2, See Hoffman 2021
-T2=31                 !used when Teq==2
+T1=28                 !used when Teq==2, See Hoffman 2021
+T2=33                 !used when Teq==2
 Tl=1                  !used when Teq==2
 Tu=2                  !used when Teq==2
 ks1=0.0024            !salinity sensitive coefficient, 0.0024 in Xiong
-ks2=0.0222            !salinity sensitive coefficient, 0.022 in Xiong
+ks2=0.0222            !salinity sensitive coefficient, larger value make salt more senstiive when S>Sopt, 0.022 in Xiong
 Gopt_P=1.06           !optimal growth rate, per day  #0.18 in Hoffman
 Gopt_H=0.62           !optimal growth rate, per day  
 half_I=30.            !umol/m2/s; irradiance half-satuartion coefficience, 30 in Xiong
 half_DIN=0.028        !DIN half-saturation, 0.028 in Xiong
-half_DIP=0.01         !DIP half-saturation
+half_DIP=0.02         !DIP half-saturation
 R0=0.025              !respiration, per day
 theta_R=1.07          !for respiration
 fP=0.16               !for respiration
 cap=200.              !carry capacity in mg Chla,  250 mg in  -Hofmann
-bio_initial=1.e6      !initial biomass for particles
+bio_initial=1.e7      !initial biomass for particles
 aggdp=2               !aggregation depth, when particle is above the aggdp, it swim down
 aggfac=1              !swimming speed for aggregation
 /
 
 &PTOUT
-iof_salt=1            !salinity output; only used when salt_on==1
-iof_temp=1            !temperature otuput; only used when temp_on==1
-iof_solar=1           !solar
-iof_biomass=1         !biomass output; only used when bio_on==1
-iof_din=1             !DIN
-iof_dip=1             !DIP
-iof_tss=1             !TSS
-iof_fdin=1            !DIN limitation
-iof_fdip=1            !DIP limitation
-iof_fI=1              !light limitation
-iof_fS=1              !salt limitation
-iof_fT=1              !temperature limitation
-iof_growth=1          !growth term in HAB
-iof_mortality=1       !mortality term in HAB
-iof_agg=1             !aggregation induced loss term in HAB
+iof_salt=0            !salinity output; only used when salt_on==1
+iof_temp=0            !temperature otuput; only used when temp_on==1
+iof_solar=0           !solar
+iof_biomass=0         !biomass output; only used when bio_on==1
+iof_din=0             !DIN
+iof_dip=0             !DIP
+iof_tss=0             !TSS
+iof_fdin=0            !DIN limitation
+iof_fdip=0            !DIP limitation
+iof_fI=0              !solar limitation
+iof_fT=0              !temperature limitation
+iof_fS=0              !salt limitation
+iof_growth=0          !growth term in HAB
+iof_mortality=0       !mortality term in HAB
+iof_agg=0             !aggregation induced loss term in HAB
 / 

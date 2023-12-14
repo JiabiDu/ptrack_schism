@@ -10,8 +10,6 @@ To do list:
 -- find out why some particles are skip for York HAB simulation
 -- particle splitting
    more particle when its biomass is big enough
--- don'g include the hgrid.gr3 and vgri.din, instead just specifying the hydro run
--- get the information of nc output frequency form param.nml in hydro run
   
 
 ============================ LESSSONS =============================
@@ -36,3 +34,8 @@ A: likely because some array is called but not allocated or defined
 A: either the varialbes are not defined or has been allocated already
 
 8. in param.in, be careful not to add ';' or '/' for a specific parameter
+
+9. in param.in for each name list, parameters beyond expecped in code will lead to failed reading. No value will be updated, even though it does not run into error. 
+
+10. use // to concatenate two strings
+
