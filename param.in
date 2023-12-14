@@ -1,7 +1,6 @@
 &CORE
 settling_velocity=0 !settling velocity, m/day
-!ncDir='/scratch/user/emilyjane1215/galveston/t92/outnc/'  !nc output directory
-ncDir='/sciclone/scr10/jiabi/CB/run06d/outputs/'    !have to end with /
+hydroDir='/sciclone/scr10/jiabi/CB/run06d/'    !have to end with /
 newio=1               !1 for new IO; 0 for old IO
 fwrite = 1       !1 for writing the model output at the end of the run, otherwise write every hydro output step
 nscreen=1             !1 for screen output

@@ -143,7 +143,7 @@
      &prcount,NCID2,numparID,timeID,modtimeID,lonID,latID,depthID,bioID,fu,rc,&
      &saltID,tempID,solarID,growthID,mortalityID,dinID,tssID,aggID,dipID,fdinID,fdipID,&
      &fIID,fTID,fSID
-      character(len=200) :: file63,ncFile,ncDir,file2d,fileS,fileT,fileU,fileV,fileW,fileD
+      character(len=200) :: file63,ncFile,hydroDir,ncDir,file2d,fileS,fileT,fileU,fileV,fileW,fileD
       integer :: tmpi
       iseed=5 !Random seed used only for oil spill model, for diffusion  
       rotate_angle=3.0*(pi/180.0)   !!Ekman effects, angle between wind and current directions
@@ -172,7 +172,7 @@
       maxdp=9999. !default value
       mindp=-9999. !default value
       ved=3.0d-4  !default value
-      namelist /CORE/ settling_velocity,ncDir, nscreen, mod_part,ibf,&
+      namelist /CORE/ settling_velocity,hydroDir, nscreen, mod_part,ibf,&
                       &istiff,ics,slam0,sfea0,h0,rnday,dtm,nspool,ihfskip,&
                       &ndeltp,newio,fwrite,salt_on,temp_on,diff_on,solar_on,maxdp,mindp,ved
       namelist /OIL/ mod_oil,ihdf,hdc,horcon,ibuoy,iwind,pbeach
@@ -214,10 +214,11 @@
       if (tss_on==0) iof_tss=0
       if (din_on==0) iof_din=0
       if (dip_on==0) iof_dip=0
-      print*,'output salt, temp, solar, biomass, din,dip,tss,growth, mortality,agg'      
-      print*,iof_salt,iof_temp,iof_solar,iof_biomass,iof_din,iof_dip,iof_tss,iof_growth,iof_mortality,iof_agg
+      print*,'output salt, temp, solar, biomass, din,dip,tss,growth'      
+      print*,iof_salt,iof_temp,iof_solar,iof_biomass,iof_din,iof_dip,iof_tss,iof_growth
       allocate(i_rec(ndeltp)) !used for DIN reading
 !... check the parameters    
+      ncDir=trim(hydroDir)//'outputs/' 
       write(*,*) 'nc directory:',trim(ncDir)
       write(*,*) 'settling velocity (m/day):',settling_velocity 
       write(*,*) 'swimming speed (m/day):',swim_spd,swim_spd2 
@@ -622,13 +623,13 @@
 !...  Read in h- and v-grid and compute geometry
 !...  Since binary may split quads, do not read in conn table
       if(ics==1) then
-        open(14,file='hgrid.gr3',status='old')
+        open(14,file=trim(hydroDir)//'hgrid.gr3',status='old')
       else
-        open(14,file='hgrid.ll', status='old')
+        open(14,file=trim(hydroDir)//'hgrid.ll', status='old')
       endif
       read(14,*) 
       read(14,*) ne2,np2
-      if(np/=np2) stop 'mismatch (3): node number in hgrid.ll not match the nc output'
+      if(np/=np2) stop 'mismatch (3): node number in  hgrid.ll vs nc'
       do i=1,np
         if(ics==1) then
           read(14,*) j,x(i),y(i),dp(i)
@@ -708,7 +709,7 @@
 !...  End fort.14
 
 !     vgrid
-      open(19,file='vgrid.in',status='old')
+      open(19,file=trim(hydroDir)//'vgrid.in',status='old')
       read(19,*)ivcor
       read(19,*)nvrt
       rewind(19)
@@ -720,7 +721,7 @@
       if (temp_on==1) allocate(temp1(np,nvrt),temp2(np,nvrt),stat=istat)
       if (solar_on==1) allocate(solar1(np),solar2(np),stat=istat)
       if(istat/=0) stop 'Failed to alloc (3)'
-      call get_vgrid('vgrid.in',np,nvrt,ivcor,kz,h_s,h_c,theta_b,theta_f,ztot,sigma,sigma_lcl,kbp)
+      call get_vgrid(trim(hydroDir)//'vgrid.in',np,nvrt,ivcor,kz,h_s,h_c,theta_b,theta_f,ztot,sigma,sigma_lcl,kbp)
       !kbp has been assigned for ivcor=1
 
 !     Init some arrays (for below bottom etc)

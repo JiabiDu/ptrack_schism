@@ -10,7 +10,6 @@ To do list:
 -- find out why some particles are skip for York HAB simulation
 -- particle splitting
    more particle when its biomass is big enough
--- use latest vgrid.in instead of old one
 -- don'g include the hgrid.gr3 and vgri.din, instead just specifying the hydro run
 -- get the information of nc output frequency form param.nml in hydro run
   
