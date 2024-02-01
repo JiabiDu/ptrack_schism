@@ -10,7 +10,7 @@ To do list:
 -- find out why some particles are skip for York HAB simulation
 -- particle splitting
    more particle when its biomass is big enough
-  
+-- skip reading netcdf before the particle release time   
 
 ============================ LESSSONS =============================
 1. need to add 'return' in subroutine, otherwise error will show up
@@ -39,3 +39,4 @@ A: either the varialbes are not defined or has been allocated already
 
 10. use // to concatenate two strings
 
+11. be mindful about the lon/lat cpp conversion; use the representing lon/lat 

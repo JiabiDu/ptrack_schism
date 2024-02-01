@@ -1446,10 +1446,10 @@
             Res(i)=R0*theta_R**(temp_par(i)-20.)+fP*GP(i)
               
             if(t_grow>=st_p(i)) then 
-              G_agg(i) = C1(i)*1.69e-8*0.1/86400.  ! loss rate due to aggreagation(Fennel 2005)
-              G_mor(i) = 0.05/86400 + 0.01/86400.*0.5*(1+tanh((temp_par(i)-29.)/0.15))  !mortality
+              G_agg(i) = C1(i)*1.69e-8*0.1  ! loss rate due to aggreagation(Fennel 2005)
+              G_mor(i) = 0.05 + 0.01*0.5*(1+tanh((temp_par(i)-29.)/0.15))  !mortality
               Gnet(i)=G(i)-G_agg(i)-G_mor(i) 
-              C2(i)=C1(i)+Gnet(i)*C1(i)*dtb 
+              C2(i)=C1(i)+Gnet(i)/86400*C1(i)*dtb 
               if(C2(i)<=0) C2(i)=0
               C1(i)=C2(i)
             endif 
