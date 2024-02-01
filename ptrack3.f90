@@ -187,9 +187,6 @@
       read (nml=CORE, iostat=rc, unit=fu)
       read (nml=OIL, iostat=rc, unit=fu)
       read (nml=HAB, iostat=rc, unit=fu)
-      Gopt_P=Gopt_P/86400. !from per day to per second
-      Gopt_H=Gopt_H/86400.
-      R0=R0/86400.
       cap=cap/1.69e-8      !from mg/l chla to cell count/l
       read (nml=PTOUT, iostat=rc, unit=fu)
       if (mod_hab==1) then
@@ -1443,7 +1440,7 @@
             endif
 
             ! respiration, #not used in the final C calculation
-            Res(i)=R0*theta_R**(temp_par(i)-20.)+fP*GP(i)
+            Res(i)=R0/86400*theta_R**(temp_par(i)-20.)+fP*GP(i)
               
             if(t_grow>=st_p(i)) then 
               G_agg(i) = C1(i)*1.69e-8*0.1  ! loss rate due to aggreagation(Fennel 2005)

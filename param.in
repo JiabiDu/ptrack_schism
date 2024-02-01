@@ -56,7 +56,7 @@ Tu=2                  !used when Teq==2
 ks1=0.0024            !salinity sensitive coefficient, 0.0024 in Xiong
 ks2=0.0222            !salinity sensitive coefficient, larger value make salt more senstiive when S>Sopt, 0.022 in Xiong
 Gopt_P=1.06           !optimal growth rate, per day  #0.18 in Hoffman
-Gopt_H=0.62           !optimal growth rate, per day  
+Gopt_H=0.62           !optimal growth rate, per day, for heterotrophic  
 half_I=30.            !umol/m2/s; irradiance half-satuartion coefficience, 30 in Xiong
 half_DIN=0.028        !DIN half-saturation, 0.028 in Xiong
 half_DIP=0.02         !DIP half-saturation
