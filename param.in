@@ -2,7 +2,7 @@
 hydroDir='/scratch/user/jdu/GoM/run19q3_20yr/'    !have to end with /
 newio=1               !1 for new IO; 0 for old IO
 fwrite =0             !1 for writing all model output at the end of the run (turn it to 0 if use HAB)
-rnday=150             !running time in days. It is not the duration after particle release.
+rnday=30             !running time in days. It is not the duration after particle release.
                       !if you release particle on day x and want 30 days of results, use x+30
 ndeltp=30             !model sub time step dtm/ndeltp
 diff_on=1             !get diffusivity and use it for random walk
