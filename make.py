@@ -4,18 +4,19 @@ import os
 import sys
 
 #compile the code
-cmd=f'''cd ~/ptrack_schism; ifort -mcmodel=medium -CB -assume byterecl -O2 -o ptrack3.WW ptrack3.f90 compute_zcor.f90 schism_geometry.f90 -I$NETCDF/include -I$NETCDF_FORTRAN/include -L$NETCDF_FORTRAN/lib -L$NETCDF/lib -lnetcdf -lnetcdff'''
+bdir='~/data10/ptrack_schism'
+cmd=f'''cd {bdir}; ifort -mcmodel=medium -CB -assume byterecl -O2 -o ptrack3.WW ptrack3.f90 compute_zcor.f90 schism_geometry.f90 -I$NETCDF/include -I$NETCDF_FORTRAN/include -L$NETCDF_FORTRAN/lib -L$NETCDF/lib -lnetcdf -lnetcdff'''
 print(cmd); os.system(cmd)
-if len(os.popen(f'ls ~/ptrack_schism/ptrack3.WW').read())==0: sys.exit('no success in compiling; no ptrack3.WW in ~/ptrack_schism')
+if len(os.popen(f'ls {bdir}/ptrack3.WW').read())==0: sys.exit(f'no success in compiling; no ptrack3.WW in {bdir}')
 
 #add git tag
-tag=os.popen('cd ~/ptrack_schism; git log').read().split('\n')[0].split()[1][:8]
+tag=os.popen(f'cd {bdir}; git log').read().split('\n')[0].split()[1][:8]
 
 #get the host name
 host=os.popen('echo $HOST').read().split()[0].upper()
 
 #add git tag and host name to the ptrack3.WW
-cmd=f'mv ~/ptrack_schism/ptrack3.WW ./ptrack3.WW.{host}.{tag}; ln -sf ptrack3.WW.{host}.{tag} ptrack3.WW;' # ./ptrack3.WW'
+cmd=f'mv {bdir}/ptrack3.WW ./ptrack3.WW.{host}.{tag}; ln -sf ptrack3.WW.{host}.{tag} ptrack3.WW;' # ./ptrack3.WW'
 print(cmd); os.system(cmd)
 
 
