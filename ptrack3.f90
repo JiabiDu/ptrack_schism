@@ -81,7 +81,7 @@
         real(kind=dbl_kind), parameter :: pi=3.1415926d0 
 
 !...  	Important variables
-        integer, save :: np,ne,ns,nvrt,mnei,mod_part,ibf,istiff,ivcor,kz,nsig,newio,fwrite,temp_on,salt_on,diff_on,solar_on,maxdp,mindp,aggdp,aggfac,ved
+        integer, save :: np,ne,ns,nvrt,mnei,mod_part,ibf,istiff,ivcor,kz,nsig,newio,fwrite,temp_on,salt_on,diff_on,solar_on,maxdp,mindp,aggdp,aggfac,ved,speeding
       	real(kind=dbl_kind), save :: h0,rho0,dt,settling_velocity,timezone,swim_spd,swim_spd2
         real,save :: h_c,theta_b,theta_f,h_s !s_con1
         integer, save :: mod_oil,mod_hab, mod_oyester, mod_plastic,mod_mercury,&
@@ -132,7 +132,7 @@
      &fI(:),fDIN(:),fDIP(:),Res(:),G_agg(:),G_mor(:),f_kd(:),avg_I(:),fmin_INP(:),Go_P(:),Go_H(:),Gmax(:),&
      &GP(:),dp_pp(:),t_DIP(:),DIP_all(:,:),DIP_par(:) !HAB
  
-      real, allocatable :: zlcl(:),real_ar(:,:)
+      real, allocatable :: zlcl(:),real_ar(:,:),real_ar2(:,:)
       integer, allocatable :: ielpar(:),levpar(:),iabnorm(:),ist(:),inbr(:),i_rec(:)
       character(len=25), allocatable :: idp(:)
       real*8 :: vxl(4,2),vyl(4,2),vzl(4,2),vxn(4),vyn(4),vzn(4),arco(3), &
@@ -140,10 +140,10 @@
      &csl(4,2),ctl(4,2),csn(4),ctn(4),vs(4),vDIN(4),vTSS(4),vDIP(4)
       integer :: nodel2(3),varid1,varid2,dimids(3),istat,nvtx,iret,&
      &ielev_id,iu_id,iv_id,iw_id,iwindx,iwindy,isolar_id,itemp_id,isalt_id,ncid3,dim1,dim2,&
-     &prcount,NCID2,numparID,timeID,modtimeID,lonID,latID,depthID,bioID,fu,rc,&
+     &prcount,NCID2,numparID,timeID,modtimeID,lonID,latID,depthID,bioID,fu,fx,rc,&
      &saltID,tempID,solarID,growthID,mortalityID,dinID,tssID,aggID,dipID,fdinID,fdipID,&
      &fIID,fTID,fSID
-      character(len=200) :: file63,ncFile,ncDir,file2d,fileS,fileT,fileU,fileV,fileW,fileD
+      character(len=200) :: file63,ncFile,hydroDir,ncDir,file2d,fileS,fileT,fileU,fileV,fileW,fileD
       integer :: tmpi
       iseed=5 !Random seed used only for oil spill model, for diffusion  
       rotate_angle=3.0*(pi/180.0)   !!Ekman effects, angle between wind and current directions
@@ -172,23 +172,22 @@
       maxdp=9999. !default value
       mindp=-9999. !default value
       ved=3.0d-4  !default value
-      namelist /CORE/ settling_velocity,ncDir, nscreen, mod_part,ibf,&
-                      &istiff,ics,slam0,sfea0,h0,rnday,dtm,nspool,ihfskip,&
-                      &ndeltp,newio,fwrite,salt_on,temp_on,diff_on,solar_on,maxdp,mindp,ved
-      namelist /OIL/ mod_oil,ihdf,hdc,horcon,ibuoy,iwind,pbeach
+      namelist /CORE/ settling_velocity,hydroDir, nscreen, mod_part,ibf,&
+                      &istiff,ics,slam0,sfea0,h0,rnday,nvrt0,&
+                      &ndeltp,newio,fwrite,salt_on,temp_on,diff_on,solar_on,maxdp,mindp,ved,&
+                      &ihdf,hdc
+      namelist /OIL/ mod_oil,horcon,ibuoy,iwind,pbeach
       namelist /HAB/ mod_hab,swim,timezone,swim_spd,swim_spd2,bio_on,din_on,dip_on,tss_on,&
                      &Topt,Sopt,kt1,kt2,ks1,ks2,Gopt_P,Gopt_H,half_I,half_DIN,&
-                     &R0,theta_R,fP,cap,Teq,T1,T2,Tl,Tu,bio_initial,half_DIP,aggdp,aggfac
+                     &R0,theta_R,fP,cap,Teq,T1,T2,Tl,Tu,bio_initial,half_DIP,aggdp,aggfac,speeding
       namelist /PTOUT/ iof_temp,iof_salt,iof_solar,iof_tss,iof_din,iof_dip,&
                      &iof_biomass,iof_growth,iof_mortality,iof_agg,iof_fdin,iof_fdip, &
                      &iof_fI,iof_fS,iof_fT
+      
       open (action='read', file='param.in', iostat=rc, newunit=fu)
       read (nml=CORE, iostat=rc, unit=fu)
       read (nml=OIL, iostat=rc, unit=fu)
       read (nml=HAB, iostat=rc, unit=fu)
-      Gopt_P=Gopt_P/86400. !from per day to per second
-      Gopt_H=Gopt_H/86400.
-      R0=R0/86400.
       cap=cap/1.69e-8      !from mg/l chla to cell count/l
       read (nml=PTOUT, iostat=rc, unit=fu)
       if (mod_hab==1) then
@@ -214,10 +213,23 @@
       if (tss_on==0) iof_tss=0
       if (din_on==0) iof_din=0
       if (dip_on==0) iof_dip=0
-      print*,'output salt, temp, solar, biomass, din,dip,tss,growth, mortality,agg'      
-      print*,iof_salt,iof_temp,iof_solar,iof_biomass,iof_din,iof_dip,iof_tss,iof_growth,iof_mortality,iof_agg
+      print*,'output salt, temp, solar, biomass, din,dip,tss,growth'      
+      print*,iof_salt,iof_temp,iof_solar,iof_biomass,iof_din,iof_dip,iof_tss,iof_growth
       allocate(i_rec(ndeltp)) !used for DIN reading
+      
+      !read some parameters from param.nml in hydro run directory
+      rnday0=rnday !rnday will be reread from hdyroDir/param.nml 
+      namelist /CORE/ ipre,ibc,ibtp,rnday,dt,msc2,mdc2,ntracer_gen,ntracer_age,&
+                      &sed_class,eco_class,nspool,ihfskip !for param.nml in hydro run
+      open (action='read', file=trim(hydroDir)//'param.nml', iostat=rc, newunit=fu)
+      read (nml=CORE, iostat=rc, unit=fu)
+      write(*,*) 'from hydroDir/param.nml,dtm,nspool,ihfskip',dt,nspool,ihfskip
+      dtm=dt
+      rnday=rnday0
+      if (dtm==0) stop "dtm cannot be zero; check param.nml"
+
 !... check the parameters    
+      ncDir=trim(hydroDir)//'outputs/' 
       write(*,*) 'nc directory:',trim(ncDir)
       write(*,*) 'settling velocity (m/day):',settling_velocity 
       write(*,*) 'swimming speed (m/day):',swim_spd,swim_spd2 
@@ -286,7 +298,7 @@
         if(zpar0(i)>0) then
           write(11,*)'Starting z-coord above f.s.',i
           write(*,*)'Starting z-coord above f.s.',i
-          stop
+          !stop
         endif
         if(ibf*st_p(i)<ibf*st_m) st_m=st_p(i)
       enddo !i
@@ -455,7 +467,7 @@
         iret=nf90_Inquire_Variable(ncid,varid1,dimids=dimids(1:2))
         iret=nf90_Inquire_Dimension(ncid,dimids(1),len=nvtx)
         iret=nf90_Inquire_Dimension(ncid,dimids(2),len=ne)
-        if(nvtx/=4) stop 'vtx/=4'
+        !if(nvtx/=4) stop 'vtx/=4'
         iret=nf90_inq_varid(ncid,'SCHISM_hgrid_node_x',varid2)
         iret=nf90_Inquire_Variable(ncid,varid2,dimids=dimids)
         iret=nf90_Inquire_Dimension(ncid,dimids(1),len=np)
@@ -490,7 +502,7 @@
           iret=nf90_inq_varid(ncidT,'temperature',itemp_id)
           if(iret/=nf90_NoErr) stop 'temperature not found'
         endif
-        if (diff_on==1) then
+        if (diff_on==1 .and. ihdf==1) then
           fileD=trim(ncDir)//'diffusivity_'//ifile_char(1:len_char)//'.nc'
           write(*,*) trim(fileD)
           iret=nf90_open(trim(adjustl(fileD)),OR(NF90_NETCDF4,NF90_NOWRITE),ncidD)
@@ -525,11 +537,12 @@
       
         iret=nf90_inq_dimid(ncid,'nSCHISM_vgrid_layers',i)
         iret=nf90_Inquire_Dimension(ncid,i,len=nvrt)
+        !if (nvrt==0) stop 'nvrt=0'
         iret=nf90_inq_varid(ncid,'SCHISM_hgrid_face_nodes',varid1)
         iret=nf90_Inquire_Variable(ncid,varid1,dimids=dimids(1:2))
         iret=nf90_Inquire_Dimension(ncid,dimids(1),len=nvtx)
         iret=nf90_Inquire_Dimension(ncid,dimids(2),len=ne)
-        if(nvtx/=4) stop 'vtx/=4'
+        !if(nvtx/=4) stop 'vtx/=4'
         iret=nf90_inq_varid(ncid,'SCHISM_hgrid_node_x',varid2)
         iret=nf90_Inquire_Variable(ncid,varid2,dimids=dimids)
         iret=nf90_Inquire_Dimension(ncid,dimids(1),len=np)
@@ -541,15 +554,19 @@
           stop 'readheader: error reading header'
         endif
       endif
+      
+      write(*,*) 'checkpoint 0a nvrt=',nvrt,'if 0 use nvrt0 from param.in', nvrt0
+      if (nvrt==0) nvrt=nvrt0
 
       allocate(x(np),y(np),dp(np),kbp00(np),i34(ne),elnode(4,ne),timeout(nrec), &
      &area(ne),nne(np),idry(np),idry_e(ne),idry_e0(ne),kbp(np),kbe(ne), &
      &eta1(np),eta2(np),eta3(np),xctr(ne),yctr(ne),isbnd(np),wnx1(np), &
-     &wnx2(np),wny1(np),wny2(np),dldxy(3,2,ne),real_ar(nvrt,np),stat=istat)
+     &wnx2(np),wny1(np),wny2(np),dldxy(3,2,ne),real_ar(nvrt,np),real_ar2(np,nvrt),stat=istat)
       if(istat/=0) stop 'failed to allocate (3)'
+      elnode=-10
       
       !get grid infomation -jd
-      iret=nf90_get_var(ncid,varid1,elnode)
+      iret=nf90_get_var(ncid,varid1,elnode(1:nvtx,:))
       iret=nf90_get_var(ncid,varid2,x)
       iret=nf90_inq_varid(ncid,'SCHISM_hgrid_node_y',varid1)
       iret=nf90_get_var(ncid,varid1,y)
@@ -622,13 +639,13 @@
 !...  Read in h- and v-grid and compute geometry
 !...  Since binary may split quads, do not read in conn table
       if(ics==1) then
-        open(14,file='hgrid.gr3',status='old')
+        open(14,file=trim(hydroDir)//'hgrid.gr3',status='old')
       else
-        open(14,file='hgrid.ll', status='old')
+        open(14,file=trim(hydroDir)//'hgrid.ll', status='old')
       endif
       read(14,*) 
       read(14,*) ne2,np2
-      if(np/=np2) stop 'mismatch (3): node number in hgrid.ll not match the nc output'
+      if(np/=np2) stop 'mismatch (3): node number in  hgrid.ll vs nc'
       do i=1,np
         if(ics==1) then
           read(14,*) j,x(i),y(i),dp(i)
@@ -640,18 +657,18 @@
         endif
         !hmod(i)=min(dp(i),dble(h_s))
       enddo !i=1,np
-
+      
       do i=1,ne2
         !Use conn table from nc
         read(14,*) !j,i34(i),elnode(1:i34(i),i)
       enddo !i
-
+      
       do i=1,ne
         n1=elnode(1,i)
         n2=elnode(2,i)
         n3=elnode(3,i)
         area(i)=signa(x(n1),x(n2),x(n3),y(n1),y(n2),y(n3))
-
+        
         !Derivative of shape function for triangles only
         !For quds, use nodes 1-3
         do j=1,3
@@ -706,9 +723,8 @@
 
       close(14)
 !...  End fort.14
-
 !     vgrid
-      open(19,file='vgrid.in',status='old')
+      open(19,file=trim(hydroDir)//'vgrid.in',status='old')
       read(19,*)ivcor
       read(19,*)nvrt
       rewind(19)
@@ -720,7 +736,7 @@
       if (temp_on==1) allocate(temp1(np,nvrt),temp2(np,nvrt),stat=istat)
       if (solar_on==1) allocate(solar1(np),solar2(np),stat=istat)
       if(istat/=0) stop 'Failed to alloc (3)'
-      call get_vgrid('vgrid.in',np,nvrt,ivcor,kz,h_s,h_c,theta_b,theta_f,ztot,sigma,sigma_lcl,kbp)
+      call get_vgrid(trim(hydroDir)//'vgrid.in',np,nvrt,ivcor,kz,h_s,h_c,theta_b,theta_f,ztot,sigma,sigma_lcl,kbp)
       !kbp has been assigned for ivcor=1
 
 !     Init some arrays (for below bottom etc)
@@ -924,12 +940,13 @@
             write(*,*) trim(fileT)
             iret=nf90_open(trim(adjustl(fileT)),OR(NF90_NETCDF4,NF90_NOWRITE),ncidT)
           endif
-          if (diff_on==1) then
+          if (diff_on==1 .and. ihdf==1) then
             fileD=trim(ncDir)//'diffusivity_'//ifile_char(1:len_char)//'.nc'
             write(*,*) trim(fileD)
             iret=nf90_open(trim(adjustl(fileD)),OR(NF90_NETCDF4,NF90_NOWRITE),ncidD)
           endif
         endif
+
         if(nscreen.eq.1) write(*,*) 'open file ',trim(file63)
         iret=nf90_open(trim(adjustl(file63)),OR(NF90_NETCDF4,NF90_NOWRITE),ncid)
         if(iret/=nf90_NoErr) stop 'file not found'
@@ -966,46 +983,46 @@
       if (newio==0) then
         iret=nf90_get_var(ncid,ielev_id,real_ar(1,1:np),(/1,irec1/),(/np,1/))
         eta2=real_ar(1,1:np)
-        iret=nf90_get_var(ncid,luv,real_ar(1:nvrt,1:np),(/1,1,1,irec1/),(/1,nvrt,np,1/))
-        uu2(:,:)=transpose(real_ar(1:nvrt,1:np))
-        iret=nf90_get_var(ncid,luv,real_ar(1:nvrt,1:np),(/2,1,1,irec1/),(/1,nvrt,np,1/))
-        vv2(:,:)=transpose(real_ar(1:nvrt,1:np))
-        iret=nf90_get_var(ncid,lw,real_ar(1:nvrt,1:np),(/1,1,irec1/),(/nvrt,np,1/))
-        ww2(:,:)=transpose(real_ar(1:nvrt,1:np))
+        iret=nf90_get_var(ncid,luv,real_ar,(/1,1,1,irec1/),(/1,nvrt,np,1/))
+        uu2(:,:)=transpose(real_ar)
+        iret=nf90_get_var(ncid,luv,real_ar,(/2,1,1,irec1/),(/1,nvrt,np,1/))
+        vv2(:,:)=transpose(real_ar)
+        iret=nf90_get_var(ncid,lw,real_ar,(/1,1,irec1/),(/nvrt,np,1/))
+        ww2(:,:)=transpose(real_ar)
         if(mod_oil==1) then
           iret=nf90_get_var(ncid,lwind,real_ar(1:2,1:np),(/1,1,irec1/),(/2,np,1/))
           wnx2(:)=real_ar(1,1:np)
           wny2(:)=real_ar(2,1:np)
-          iret=nf90_get_var(ncid,ltdff,real_ar(1:nvrt,1:np),(/1,1,irec1/),(/nvrt,np,1/))
-          vf2(:,:)=transpose(real_ar(1:nvrt,1:np))
+          iret=nf90_get_var(ncid,ltdff,real_ar,(/1,1,irec1/),(/nvrt,np,1/))
+          vf2(:,:)=transpose(real_ar)
         endif !mod_oil
       else !newio==1 -jd
         iret=nf90_get_var(ncid,ielev_id,real_ar(1,1:np),(/1,irec1/),(/np,1/))
         eta2=real_ar(1,1:np)
-        iret=nf90_get_var(ncidU,iu_id,real_ar(1:nvrt,1:np),(/1,1,irec1/),(/nvrt,np,1/))
-        uu2(:,:)=transpose(real_ar(1:nvrt,1:np))
-        iret=nf90_get_var(ncidV,iv_id,real_ar(1:nvrt,1:np),(/1,1,irec1/),(/nvrt,np,1/))
-        vv2(:,:)=transpose(real_ar(1:nvrt,1:np))
-        iret=nf90_get_var(ncidW,iw_id,real_ar(1:nvrt,1:np),(/1,1,irec1/),(/nvrt,np,1/))
-        ww2(:,:)=transpose(real_ar(1:nvrt,1:np))
+        iret=nf90_get_var(ncidU,iu_id,real_ar,(/1,1,irec1/),(/nvrt,np,1/))
+        uu2(:,:)=transpose(real_ar)
+        iret=nf90_get_var(ncidV,iv_id,real_ar,(/1,1,irec1/),(/nvrt,np,1/))
+        vv2(:,:)=transpose(real_ar)
+        iret=nf90_get_var(ncidW,iw_id,real_ar,(/1,1,irec1/),(/nvrt,np,1/))
+        ww2(:,:)=transpose(real_ar)
         if (solar_on==1) then
           iret=nf90_get_var(ncid,isolar_id,real_ar(1,1:np),(/1,irec1/),(/np,1/))
           if(iret/=nf90_NoErr) stop 'solar radiation not read'
           solar2=real_ar(1,1:np)
         endif
         if (temp_on==1) then
-          iret=nf90_get_var(ncidT,itemp_id,real_ar(1:nvrt,1:np),(/1,1,irec1/),(/nvrt,np,1/))
+          iret=nf90_get_var(ncidT,itemp_id,real_ar,(/1,1,irec1/),(/nvrt,np,1/))
           if(iret/=nf90_NoErr) stop 'temperature not read'
-          temp2(:,:)=transpose(real_ar(1:nvrt,1:np))
+          temp2(:,:)=transpose(real_ar)
         endif
         if (salt_on==1) then
-          iret=nf90_get_var(ncidS,isalt_id,real_ar(1:nvrt,1:np),(/1,1,irec1/),(/nvrt,np,1/))
+          iret=nf90_get_var(ncidS,isalt_id,real_ar,(/1,1,irec1/),(/nvrt,np,1/))
           if(iret/=nf90_NoErr) stop 'salinity not read'
-          salt2(:,:)=transpose(real_ar(1:nvrt,1:np))
+          salt2(:,:)=transpose(real_ar)
         endif
-        if (diff_on==1) then
-          iret=nf90_get_var(ncidD,idiff_id,real_ar(1:nvrt,1:np),(/1,1,irec1/),(/nvrt,np,1/))
-          vf2(:,:)=transpose(real_ar(1:nvrt,1:np))
+        if (diff_on==1 .and. ihdf==1) then
+          iret=nf90_get_var(ncidD,idiff_id,real_ar,(/1,1,irec1/),(/nvrt,np,1/))
+          vf2(:,:)=transpose(real_ar)
         endif
         if(mod_oil==1) then
           iret=nf90_get_var(ncid,iwindx,real_ar(1,1:np),(/1,irec1/),(/np,1/))
@@ -1027,7 +1044,6 @@
           eta3(i)=eta2(i)
         endif
       enddo !i
-
 !...  Compute z-cor
       call levels
 !...  Deal with junks
@@ -1057,6 +1073,7 @@
         if (salt_on==1) salt1=salt2
         if (solar_on==1) solar1=solar2
       endif 
+
 !...  compute hvis_e & hvis_e based on Smagorinsky Algorithm !diff_on
       if(diff_on==1) then
         if(ihdf==0) then
@@ -1236,7 +1253,11 @@
             hour=DMOD(t_swm+timezone*3600,86400.)/3600.
             if(hour>=6 .and. hour<=18) then !swim upward during 6-18h  
               if (aggdp==0 .or. z0<-1*aggdp) then
-                zadv=zadv+dtb*swim_spd
+                if (hour<=9 .and. speeding==1) then
+                    zadv=zadv+dtb*swim_spd*2
+                else
+                    zadv=zadv+dtb*swim_spd
+                endif
               else !aggregation around aggregation depth (aggdp)
                 if (z0>-1*aggdp) then !above the aggdp,swim down
                    zadv=zadv-dtb*swim_spd*aggfac
@@ -1244,7 +1265,11 @@
               endif
               if (i==1 .and. idt==1) write(*,*) hour,'swim upward'
             else
-              zadv=zadv+dtb*swim_spd2            !swim downward during night
+              if (hour<=21 .and. speeding==1) then
+                  zadv=zadv+dtb*swim_spd2*2            !swim downward during night
+              else
+                  zadv=zadv+dtb*swim_spd2            !swim downward during night
+              endif
               if (i==1 .and. idt==1) write(*,*) hour,'swim downward'
             endif
           endif 
@@ -1266,6 +1291,7 @@
             !rnds - random number used for stranding (oil spill only)
             rnds=dy(1) !c to be checked, not sure whether this is needed
           endif
+          !write(*,*) 'du02',xdif,ydif,zdif
           xt=x0+xadv+xdif
           yt=y0+yadv+ydif
           zt=z0+zadv+zdif
@@ -1422,13 +1448,13 @@
             endif
 
             ! respiration, #not used in the final C calculation
-            Res(i)=R0*theta_R**(temp_par(i)-20.)+fP*GP(i)
+            Res(i)=R0/86400*theta_R**(temp_par(i)-20.)+fP*GP(i)
               
             if(t_grow>=st_p(i)) then 
-              G_agg(i) = C1(i)*1.69e-8*0.1/86400.  ! loss rate due to aggreagation(Fennel 2005)
-              G_mor(i) = 0.05/86400 + 0.01/86400.*0.5*(1+tanh((temp_par(i)-29.)/0.15))  !mortality
+              G_agg(i) = C1(i)*1.69e-8*0.1  ! loss rate due to aggreagation(Fennel 2005)
+              G_mor(i) = 0.05 + 0.01*0.5*(1+tanh((temp_par(i)-29.)/0.15))  !mortality
               Gnet(i)=G(i)-G_agg(i)-G_mor(i) 
-              C2(i)=C1(i)+Gnet(i)*C1(i)*dtb 
+              C2(i)=C1(i)+Gnet(i)/86400*C1(i)*dtb 
               if(C2(i)<=0) C2(i)=0
               C1(i)=C2(i)
             endif 
