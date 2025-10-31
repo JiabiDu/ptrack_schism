@@ -1,33 +1,34 @@
 &CORE
-hydroDir='/scratch/user/jdu/GoM/run19q3_20yr/'    !have to end with /
+settling_velocity=0 !settling velocity, m/day
+hydroDir='/scratch/user/jdu/GoM/run19q3/'    !have to end with /
 newio=1               !1 for new IO; 0 for old IO
-fwrite =0             !1 for writing all model output at the end of the run (turn it to 0 if use HAB)
-rnday=150             !running time in days. It is not the duration after particle release.
-                      !if you release particle on day x and want 30 days of results, use x+30
-ndeltp=30             !model sub time step dtm/ndeltp
-diff_on=1             !get diffusivity and use it for random walk
-temp_on=0             !get the temperature for the particle; automatically on if HAB is turned on
-salt_on=0             !get the salinity for the particle; automatically on if HAB is turned on
-solar_on=0            !get solar radiation; automatically on if HAB is turned on
-maxdp=9999            !maximum depth allowed
-mindp=-999            !minimum depth
-ved=3.0d-4            !vertical eddy diffusivity, originally 3.0d-4; used for vertical random walk
-                      !horizontal random walk is determined by the hydro output diffusivity
+fwrite=1       !1 for writing the model output at the end of the run, otherwise write every hydro output step
+nscreen=1             !1 for screen output
+mod_part=0            !(0: passive; 1: oil spill)
 ibf=1                 !(1: forward; -1: backward)
 istiff=0              !(fix distance from f.s[1] or not[0])
 ics=2                 !1 to use hgrid.gr3, 2 to use hgrid.ll
-settling_velocity=0   !settling velocity, m/day; negative for upward moving
-nscreen=1             !1 for screen output
-mod_part=0            !(0: passive; 1: oil spill)
-slam0=-76             !used for converting xy to lon/lat; used only when ics==1
-sfea0=37              !used for converting xy to lon/lat; used only when ics==1
+slam0=-76             !
+sfea0=37              !
 h0=0.05               !min depth; when eta+dp<h0, stop
-ihdf=0                !turn on Smagorinsky algorithm - off(0), on(1)
-hdc=3.0d-4            !diffusivity constant if ihdf=0, used when diff_on==1 and ihdf==0
+rnday=6700            !running time in days, not the duration after particle release
+dtm=150.              !hydro model time step, must be same as in param.nml in hydro model
+nspool=48             !hydro model output frequency, must be same as in param.nml in hydro model
+ihfskip=576           !time steps for each hydro model output stack, see param.nml in hydro model
+ndeltp=30             !model sub time step dtm/ndeltp
+temp_on=0             !get the temperature for the particle; automatically on if HAB is turned on
+salt_on=0             !get the salinity for the particle; automatically on if HAB is turned on
+diff_on=1             !get diffusivity and use it for random walk
+solar_on=0            !get solar radiation; automatically on if HAB is turned on
+maxdp=9999            !maximum depth allowed
+mindp=-999            !minimum depth
+ved=3.0d-4            !vertical eddy diffusivity, originally 3.0d-4
 /
 
 &OIL
 mod_oil=0             !turn on oil spill module 
+ihdf=0                !turn on Smagorinsky algorithm - off(0), on(1)
+hdc=0    
 horcon=0
 ibuoy=0               !turn buoyancy of particle  - off(0), on(1)
 iwind=0               !turn wind effect - off(0), on(1)
@@ -56,7 +57,7 @@ Tu=2                  !used when Teq==2
 ks1=0.0024            !salinity sensitive coefficient, 0.0024 in Xiong
 ks2=0.0222            !salinity sensitive coefficient, larger value make salt more senstiive when S>Sopt, 0.022 in Xiong
 Gopt_P=1.06           !optimal growth rate, per day  #0.18 in Hoffman
-Gopt_H=0.62           !optimal growth rate, per day, for heterotrophic  
+Gopt_H=0.62           !optimal growth rate, per day  
 half_I=30.            !umol/m2/s; irradiance half-satuartion coefficience, 30 in Xiong
 half_DIN=0.028        !DIN half-saturation, 0.028 in Xiong
 half_DIP=0.02         !DIP half-saturation

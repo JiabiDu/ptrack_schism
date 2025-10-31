@@ -189,9 +189,13 @@
 
         case(1) !localized sigma
           read(19,*)nvrt
-          do i=1,np
-            read(19,*)j,kbp(i),sigma_lcl(kbp(i):nvrt,i)
+          read(19,*)kbp(1:np)
+          do i=1,nvrt
+            read(19,*)j,sigma_lcl(i,1:np)
           enddo !i
+          !do i=1,np
+          !  read(19,*)j,kbp(i),sigma_lcl(kbp(i):nvrt,i)
+          !enddo !i
         case default
           write(*,*)'Unknown ivcor:',ivcor
           stop
