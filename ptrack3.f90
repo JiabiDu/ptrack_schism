@@ -722,6 +722,7 @@
       read(19,*)ivcor
       read(19,*)nvrt
       rewind(19)
+      write(*,*) 'from vgrid.in, nvrt = ',nvrt
       allocate(sigma_lcl(nvrt,np),z(np,nvrt),icum1(np,nvrt),icum2(np,nvrt,2), &
      &uu1(np,nvrt),vv1(np,nvrt),ww1(np,nvrt),uu2(np,nvrt),vv2(np,nvrt),ww2(np,nvrt), &
      &ztmp(nvrt),ztmp2(nvrt),zlcl(nvrt),sigma(nvrt),ztot(nvrt),hf1(np,nvrt), &
