@@ -15,7 +15,7 @@ tag=os.popen('cd ~/ptrack_schism; git log').read().split('\n')[0].split()[1][:8]
 host=os.popen('echo $HOST').read().split()[0].split('.')[0].upper()
 
 #add git tag and host name to the ptrack3.WW
-cmd=f'mv ~/ptrack_schism/ptrack3.WW ./ptrack3.WW.{host}.{tag}; ln -sf ptrack3.WW.{host}.{tag} ptrack3.WW; ./ptrack3.WW'
+cmd=f'mv ~/ptrack_schism/ptrack3.WW ./ptrack3.WW.{host}.{tag}; ln -sf ptrack3.WW.{host}.{tag} ptrack3.WW; sbatch run_ptrack.grace'
 print(cmd); os.system(cmd)
 
 
