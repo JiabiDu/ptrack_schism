@@ -1221,6 +1221,13 @@
           yadv=ibf*dtb*vpar(i)
           zadv=ibf*dtb*wpar(i)
           rnds=0 !not used !c to be checked whether it is needed
+         
+          !add gradient term for the diffusion 
+          if (diff_on==1) then
+            xadv=xadv+ibf*dtb*grdx(i)
+            yadv=yadv+ibf*dtb*grdy(i)
+            zadv=zadv+ibf*dtb*grdz(i)
+          endif
 
           if(mod_oil==1) then !oil spill
 ! ...       wind rotation & apply to surface current
@@ -1236,10 +1243,10 @@
             if(z0<-0.1) then  ! sub_surface particles are not influenced by wind
               cur_x=0; cur_y=0
             endif 
-            !addition to the original advection
-            xadv=xadv+ibf*dtb*(cur_x+grdx(i))
-            yadv=yadv+ibf*dtb*(cur_y+grdy(i))
-            zadv=zadv+ibf*dtb*(rsl+grdz(i))
+            !addition of wind drag to the original advection
+            xadv=xadv+ibf*dtb*cur_x
+            yadv=yadv+ibf*dtb*cur_y
+            zadv=zadv+ibf*dtb*rsl
           endif !mod_part
           if (settling_velocity/=0) zadv=zadv-ibf*dtb*settling_velocity
           if (swim==1 .and. mod_hab==1) then
