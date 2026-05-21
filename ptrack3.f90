@@ -217,6 +217,9 @@
       if (bio_on==0) then
         iof_biomass=0; iof_growth=0; iof_mortality=0; iof_agg=0
       endif
+      if (mod_oyster==1) then
+        iof_biomass=1
+      endif
       if (tss_on==0) iof_tss=0
       if (din_on==0) iof_din=0
       if (dip_on==0) iof_dip=0
