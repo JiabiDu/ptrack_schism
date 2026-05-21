@@ -84,8 +84,9 @@
         integer, save :: np,ne,ns,nvrt,mnei,mod_part,ibf,istiff,ivcor,kz,nsig,newio,fwrite,temp_on,salt_on,diff_on,solar_on,maxdp,mindp,aggdp,aggfac,ved,speeding
       	real(kind=dbl_kind), save :: h0,rho0,dt,settling_velocity,timezone,swim_spd,swim_spd2
         real,save :: h_c,theta_b,theta_f,h_s !s_con1
-        integer, save :: mod_oil,mod_hab, mod_oyester, mod_plastic,mod_mercury,&
+        integer, save :: mod_oil,mod_hab, mod_oyster, mod_plastic,mod_mercury,&
        &swim,tss_on,bio_on,din_on,dip_on   !HAB
+        real, save :: Gmax_oyster,size_initial  !Oyster module 
         integer, save :: iof_salt,iof_temp,iof_solar,iof_biomass,iof_din,iof_dip,iof_tss,iof_growth,iof_mortality,iof_agg,iof_fdin,iof_fdip,iof_fI,iof_fS,iof_fT
         real,save:: Topt,Sopt,kt1,kt2,ks1,ks2,Gopt_H,Gopt_P,half_I,half_DIN,half_DIP,R0,theta_R,fP,cap !for HAB biomass,T1,T2,Tl,Tu,Teq,bio_initial
 !...    Output handles
@@ -176,6 +177,7 @@
                       &istiff,ics,slam0,sfea0,h0,rnday,&
                       &ndeltp,newio,fwrite,salt_on,temp_on,diff_on,solar_on,maxdp,mindp,ved
       namelist /OIL/ mod_oil,ihdf,hdc,horcon,ibuoy,iwind,pbeach
+      namelist /OYSTER/ mod_oyster,Gmax_oyster, size_initial
       namelist /HAB/ mod_hab,swim,timezone,swim_spd,swim_spd2,bio_on,din_on,dip_on,tss_on,&
                      &Topt,Sopt,kt1,kt2,ks1,ks2,Gopt_P,Gopt_H,half_I,half_DIN,&
                      &R0,theta_R,fP,cap,Teq,T1,T2,Tl,Tu,bio_initial,half_DIP,aggdp,aggfac,speeding
@@ -186,9 +188,15 @@
       open (action='read', file='param.in', iostat=rc, newunit=fu)
       read (nml=CORE, iostat=rc, unit=fu)
       read (nml=OIL, iostat=rc, unit=fu)
+      read (nml=OYSTER, iostat=rc, unit=fu)
       read (nml=HAB, iostat=rc, unit=fu)
       cap=cap/1.69e-8      !from mg/l chla to cell count/l
       read (nml=PTOUT, iostat=rc, unit=fu)
+      
+      if (mod_oyster==1) then
+        salt_on=1; temp_on=1
+      endif
+
       if (mod_hab==1) then
         salt_on=1; temp_on=1; solar_on=1
       else
@@ -266,6 +274,7 @@
       if (salt_on==1) allocate(salt_par(nparticle),stat=istat)
       if (temp_on==1) allocate(temp_par(nparticle),stat=istat)
       if (solar_on==1) allocate(solar_par(nparticle),stat=istat)
+      if (mod_oyster==1) allocate(fT(nparticle),fS(nparticle),G(nparticle),C1(nparticle),C2(nparticle),stat=istat)
       if (mod_hab==1 .and. bio_on==1) allocate(den_hab(nparticle),C1(nparticle),C2(nparticle),&
      &Gnet(nparticle),chla(nparticle),G(nparticle),fT(nparticle),fS(nparticle),&
      &DIN_par(nparticle),DIP_par(nparticle),TSS_par(nparticle),fI(nparticle),fDIN(nparticle),fDIP(nparticle),&
@@ -882,6 +891,9 @@
       zpar=zpar0
       if (temp_on==1) temp_par=0
       if (salt_on==1) salt_par=0
+      if (mod_oyster==1) then
+        C1=size_initial
+      endif
       if (mod_hab==1 .and. bio_on==1) then
         C1=bio_initial;  ! cell/m3
         Gnet=0; G=0; fT=0;fS=0  !-jx, C1 is initial cell
@@ -1401,6 +1413,22 @@
           z0=zt
           nnel0=nnel
           jlev0=jlev
+          if (mod_oyster==1) then
+            fT(i)=temp_par(i)*0.05
+            if (fT(i)>1.0) fT(i)=1
+            if (fT(i)<0.0) fT(i)=0
+
+            fS(i)=salt_par(i)*0.05
+            if (fS(i)>1.0) fS(i)=1
+            if (fS(i)<0.0) fS(i)=0
+
+            G(i)=Gmax_oyster*fT(i)*fS(i)
+            
+            C2(i)=C1(i)+G(i)/86400*C1(i)*dtb
+            if(C2(i)<=0) C2(i)=0
+            C1(i)=C2(i)
+
+          endif         
 !...      HAB biomass calculation based on Qin 2021 and Xiong's implementation
           if (mod_hab==1 .and. bio_on==1) then
             if (i==1 .and. idt==1) write(*,*) 'calculate HAB biomass' 
@@ -1528,7 +1556,7 @@
         endif
         if (iof_biomass) then
           STATUS=NF90_INQ_VARID(NCID2, "biomass", bioID)
-          status=NF90_PUT_VAR(NCID2, bioID, den_hab,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
+          status=NF90_PUT_VAR(NCID2, bioID, C2,start=(/ 1, prcount /),count=(/ nparticle, 1 /))
         endif
         if (iof_din) then
           STATUS=NF90_INQ_VARID(NCID2, "din", dinID)

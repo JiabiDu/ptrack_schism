@@ -34,6 +34,12 @@ iwind=0               !turn wind effect - off(0), on(1)
 pbeach=50             !set percentage of stranding on shore
 /
 
+&OYSTER
+mod_oyster=1          !oyster module     
+Gmax=0.2              !maximum growth rate for oyster larvae 
+size_initial=50       !initial size of larve
+/
+
 &HAB
 mod_hab=0             !turn on HAB module, automatically turn on salt, temp, solar; diffusion is optional
 swim=1                !swimming, vertical migration, diurnal, upward during hr 6-18
@@ -73,7 +79,7 @@ aggfac=1              !swimming speed for aggregation
 iof_salt=0            !salinity output; only used when salt_on==1
 iof_temp=0            !temperature otuput; only used when temp_on==1
 iof_solar=0           !solar
-iof_biomass=0         !biomass output; only used when bio_on==1
+iof_biomass=1         !biomass output; only used when bio_on==1
 iof_din=0             !DIN
 iof_dip=0             !DIP
 iof_tss=0             !TSS
