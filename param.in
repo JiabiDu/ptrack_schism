@@ -36,7 +36,7 @@ pbeach=50             !set percentage of stranding on shore
 
 &OYSTER
 mod_oyster=1          !oyster module     
-Gmax=0.2              !maximum growth rate for oyster larvae 
+Gmax_oyster=0.2              !maximum growth rate for oyster larvae 
 size_initial=50       !initial size of larve
 /
 
