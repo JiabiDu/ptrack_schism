@@ -196,9 +196,6 @@
       if (mod_oyster==1) then
         salt_on=1; temp_on=1
       endif
-      write(*,*) size_initial
-      stop
-
       if (mod_hab==1) then
         salt_on=1; temp_on=1; solar_on=1
       else
