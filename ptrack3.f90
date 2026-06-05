@@ -1415,21 +1415,12 @@
           z0=zt
           nnel0=nnel
           jlev0=jlev
+          !Oyster larvae growth function
           if (mod_oyster==1) then
-            fT(i)=temp_par(i)*0.05
-            if (fT(i)>1.0) fT(i)=1
-            if (fT(i)<0.0) fT(i)=0
-
-            fS(i)=salt_par(i)*0.05
-            if (fS(i)>1.0) fS(i)=1
-            if (fS(i)<0.0) fS(i)=0
-
-            G(i)=Gmax_oyster*fT(i)*fS(i)
-            
+            G(i)=Gmax_oyster*(4.5+0.6*(temp_par(i)-18)+6.0*(1.0-exp(-0.2*(salt_par(i)-7.5))))
+            if G(i)<0 G(i)=0
             C2(i)=C1(i)+G(i)/86400*C1(i)*dtb
-            if(C2(i)<=0) C2(i)=0
             C1(i)=C2(i)
-
           endif         
 !...      HAB biomass calculation based on Qin 2021 and Xiong's implementation
           if (mod_hab==1 .and. bio_on==1) then
