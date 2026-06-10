@@ -1419,7 +1419,7 @@
           if (mod_oyster==1) then
             G(i)=Gmax_oyster*(4.5+0.6*(temp_par(i)-18)+6.0*(1.0-exp(-0.2*(salt_par(i)-7.5))))
             if (G(i)<0) G(i)=0
-            C2(i)=C1(i)+G(i)/86400*C1(i)*dtb
+            C2(i)=C1(i)+G(i)/86400*dtb
             C1(i)=C2(i)
           endif         
 !...      HAB biomass calculation based on Qin 2021 and Xiong's implementation
